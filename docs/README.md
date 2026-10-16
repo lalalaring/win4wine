@@ -1,5 +1,7 @@
 # ドキュメント
 
+**日本語** · [简体中文](README.zh.md)
+
 | 文書 | 内容 |
 |---|---|
 | [architecture.md](architecture.md) | 仕組み。部品の役割、WM と proxy と IPC、Linux の窓の XP の枠、トレイ、セッション、ログイン画面、DPI |

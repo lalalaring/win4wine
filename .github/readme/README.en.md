@@ -128,6 +128,7 @@ LightDM ─ XP Welcome greeter (greeter/)
 ```
 
 The design documents are in Japanese; [docs/README.md](../../docs/README.md) lists them.
+A Chinese summary of all of them is in [docs/README.zh.md](../../docs/README.zh.md).
 
 ## Similar projects
 

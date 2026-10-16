@@ -125,7 +125,7 @@ scripts/setup.sh --shell reactos --lang zh
 - `--theme` 可以是 `classic`（默认，类似 Windows 2000 的经典外观）或 ReactOS 自带的 `lautus`、`lunar`、`mizu`；
   以后想换就用 `--theme` 再跑一次 setup.sh。
 - 带 `--wayland` 时也会安装 Wayland 会话「ReactOS Shell (Wine, Wayland)」（比 X11 更实验）。
-- 细节：[docs/reactos.md](../../docs/reactos.md)（日文）。
+- 细节：[docs/reactos.md](../../docs/reactos.md)（日文）；中文摘要见 [docs/README.zh.md](../../docs/README.zh.md)。
 
 ## 3. 登录
 

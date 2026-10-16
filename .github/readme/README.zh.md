@@ -125,7 +125,7 @@ LightDM ─ XP 的欢迎屏幕（greeter/）
         └─ fcitx5（日文用 Mozc，简体中文用拼音）、托盘桥（bridge-wm/tray.py）
 ```
 
-设计与实现的详细说明在 [docs/](../../docs/README.md) 里（日文为主，部分有英文版）。
+设计与实现的详细说明在 [docs/](../../docs/README.md) 里（日文），另有一份[中文摘要](../../docs/README.zh.md)（覆盖全部设计文档）。
 
 ## 类似的项目
 

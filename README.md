@@ -125,7 +125,7 @@ LightDM ─ XP のようこそ画面 (greeter/)
         └─ fcitx5（日本語は Mozc、簡体字中国語は Pinyin）, トレイの仲介 (bridge-wm/tray.py)
 ```
 
-仕組みや設計の詳しい説明は [docs/](docs/README.md) にまとめています。
+仕組みや設計の詳しい説明は [docs/](docs/README.md) にまとめています（中国語の摘要は [docs/README.zh.md](docs/README.zh.md)）。
 
 ## 似たプロジェクト
 
