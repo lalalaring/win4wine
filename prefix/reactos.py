@@ -38,9 +38,9 @@ SHELL_DLLS = ('shell32', 'browseui', 'shdocvw', 'shlwapi', 'comctl32', 'zipfldr'
 # ReactOS-only modules (no Wine builtin of the name): ros-explorer.exe loads them by name.
 EXTRA_DLLS = ('msgina',)
 SXS = 'x86_microsoft.windows.common-controls_6595b64144ccf1df_6.0.2600.2982_none_deadbeef'
-LOCALES = {'ja': 'ja_JP.UTF-8', 'en': 'en_US.UTF-8'}
+LOCALES = {'ja': 'ja_JP.UTF-8', 'zh': 'zh_CN.UTF-8', 'en': 'en_US.UTF-8'}
 # The code pages Wine records for each language (locale_current)
-CODEPAGES = {'ja': '932,932', 'en': '1252,437'}
+CODEPAGES = {'ja': '932,932', 'zh': '936,936', 'en': '1252,437'}
 # ReactOS's visual styles: directory and file, color and size names (their COLORNAMES and SIZENAMES).
 THEMES = {'lautus': ('Lautus', 'Normal Color', 'Normal Size'), 'lunar': ('Lunar', 'ReactOS', 'Normal Size'),
           'mizu': ('Mizu', 'Normal Color', 'Normal Size')}
@@ -75,7 +75,18 @@ LINKED_FONTS = ('Tahoma', 'MS Shell Dlg', 'MS Shell Dlg 2', 'Microsoft Sans Seri
 # IDS_STARTUP, shell32's IDS_ADMINTOOLS) and Wine in English: Wine's name, which
 # is also the user's value in Shell Folders, and the common folder's value.
 MENU_FOLDERS = (('StartUp', 'Common StartUp'), ('Administrative Tools', 'Common Administrative Tools'))
-MENU_FOLDER_NAMES = {'ja': ('スタートアップ', '管理ツール')}
+MENU_FOLDER_NAMES = {'ja': ('スタートアップ', '管理ツール'), 'zh': ('启动', '管理工具')}
+# The Windows tools in the shell's Start menu, in the name XP gives them, and
+# the folder XP keeps them in (its Accessories).
+TOOLS = {
+    'ja': (('タスク マネージャー', 'taskmgr'), ('メモ帳', 'notepad'), ('コマンド プロンプト', 'cmd'),
+           ('レジストリ エディタ', 'regedit'), ('コントロール パネル', 'control'), ('Wine の構成', 'winecfg')),
+    'zh': (('任务管理器', 'taskmgr'), ('记事本', 'notepad'), ('命令提示符', 'cmd'),
+           ('注册表编辑器', 'regedit'), ('控制面板', 'control'), ('Wine 配置', 'winecfg')),
+    'en': (('Task Manager', 'taskmgr'), ('Notepad', 'notepad'), ('Command Prompt', 'cmd'),
+           ('Registry Editor', 'regedit'), ('Control Panel', 'control'), ('Wine Configuration', 'winecfg')),
+}
+TOOL_FOLDER = {'ja': 'アクセサリ', 'zh': '附件', 'en': 'Accessories'}
 HIDDEN_DESKTOP_ITEMS = ('{871C5380-42A0-1069-A2EA-08002B30309D}', '{9D20AAE8-0625-44B0-9CA7-71889C2254D9}')
 
 
@@ -135,6 +146,14 @@ class Prefix:
         # Same assembly version as Wine's own Common Controls 6: the file is
         # replaced, and the prefix-wide builtin override keeps Wine's for others.
         self.place(native / 'sxs/comctl32.dll', self.path / f'drive_c/windows/winsxs/{SXS}/comctl32.dll')
+        # The desktop's Properties applet (Wine's own desk.cpl is an empty stub)
+        # and the launcher that the shortcuts of the Windows tools point at.
+        bridge = ROOT / '.local/bridge'
+        for name in ('desk.cpl', 'display-properties.exe'):
+            if (bridge / name).is_file():
+                self.place(bridge / name, self.system / name)
+        if (bridge / 'win-run.exe').is_file():
+            self.place(bridge / 'win-run.exe', self.path / 'drive_c/windows/win-run.exe')
 
     def registrations(self):
         """What a Wine update of the prefix rewrites or a locale change resets."""
@@ -166,12 +185,28 @@ class Prefix:
         # Wine has no help viewer for Help and Support.
         self.reg(r'HKCU\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer', 'NoSMHelp', 1, 'REG_DWORD')
         self.menu_folders()
+        self.tools_menu()
         # Wine rewrites the system links for the prefix's locale.
-        if self.lang == 'ja':
+        if self.lang in ('ja', 'zh'):
             for face in LINKED_FONTS:
                 for view in (32, 64):
                     self.reg(r'HKLM\Software\Microsoft\Windows NT\CurrentVersion\FontLink\SystemLink', face,
                              'DroidSansFallback.ttf,Droid Sans Fallback', 'REG_MULTI_SZ', view=view)
+        # Wine's default interface font for Chinese is SimSun and for Japanese
+        # MS UI Gothic; this prefix has neither (ReactOS brings its own fonts),
+        # so Wine's own windows — dialogs, the Windows tools — drew CJK text as
+        # boxes. Point the families that are missing at the CJK font the prefix
+        # does have; the shell's own windows already work through FontLink.
+        if self.lang in ('ja', 'zh'):
+            for family in ('MS Shell Dlg', 'MS Shell Dlg 2', 'SimSun', 'NSimSun', 'MS UI Gothic',
+                           'Microsoft Sans Serif', 'MS Sans Serif'):
+                self.reg(r'HKLM\Software\Microsoft\Windows NT\CurrentVersion\FontSubstitutes',
+                         family, 'Droid Sans Fallback')
+            for family in ('MS Shell Dlg', 'SimSun', 'MS UI Gothic'):
+                self.reg(r'HKCU\Software\Wine\Fonts\Replacements', family, 'Droid Sans Fallback')
+        # The shell opens the desktop's Properties as "rundll32 desk.cpl": run
+        # the applet beside it (place_files) instead of Wine's empty stub.
+        self.reg(r'HKCU\Software\Wine\AppDefaults\rundll32.exe\DllOverrides', 'desk.cpl', 'native')
 
     def menu_folders(self):
         """Give the Start menu folders ReactOS's names in the prefix's language.
@@ -194,6 +229,27 @@ class Prefix:
                 self.reg(key + r'\User Shell Folders', value_name, variable + relative, 'REG_EXPAND_SZ')
                 self.reg(key + r'\Shell Folders', value_name,
                          'C:\\' + root.replace('/', '\\') + relative)
+
+    def tools_menu(self):
+        """Shortcuts for the Windows tools, in the shell's Accessories folder.
+
+        Wine's builtin programs are not files inside the prefix and a shortcut
+        cannot point at something that is not there, so all of them start
+        through win-run.exe (place_files) with the program as its argument."""
+        library = ROOT / '.local/bridge/linux-links.exe'
+        if not library.is_file():
+            return
+        folder = TOOL_FOLDER.get(self.lang, TOOL_FOLDER['en'])
+        root = rf'C:\ProgramData\Microsoft\Windows\Start Menu\Programs\{folder}'
+        runner = r'C:\windows\win-run.exe'
+        lines = '\n'.join('\t'.join((rf'{root}\{name}.lnk', runner, program, r'C:\windows',
+                                     f'{runner},0', name))
+                          for name, program in TOOLS.get(self.lang, TOOLS['en']))
+        # The writer reads UTF-8; that only decodes right when Wine's ANSI code
+        # page follows the prefix's locale, which is what this environment sets.
+        subprocess.run([str(self.wine), str(library)], env=dict(self.env, WINEDEBUG='-all'),
+                       input=lines + '\n', text=True, check=False, timeout=120,
+                       stdout=subprocess.DEVNULL)
 
     def theme(self, name):
         """Turn visual styles off (classic) or apply one of ReactOS's."""
@@ -325,7 +381,7 @@ def locale_current(dest, lang):
     fonts = registry_values(dest / 'user.reg', r'Software\\Wine\\Fonts')
     if fonts.get('Codepages') != f'"{CODEPAGES[lang]}"':
         return False
-    if lang == 'ja':
+    if lang in ('ja', 'zh'):
         links = registry_values(dest / 'system.reg',
                                 r'Software\\Microsoft\\Windows NT\\CurrentVersion\\FontLink\\SystemLink')
         return all('DroidSansFallback' in links.get(face, '') for face in LINKED_FONTS)
