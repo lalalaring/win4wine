@@ -1,6 +1,6 @@
 # Installation
 
-[日本語](../../INSTALL.md) · **English**
+[日本語](../../INSTALL.md) · **English** · [简体中文](INSTALL.zh.md)
 
 > [!WARNING]
 > - Obtain the Windows XP ISO yourself, and use this at your own risk (see [Caution in the README](README.en.md#caution)).
@@ -174,8 +174,8 @@ Restart the display manager (or reboot).
 
 ## Changing the look and the text size
 
-Display Properties (right-click the desktop → Properties) do not open in the XP shell or the ReactOS shell (their parts are
-not installed: XP shows an error, ReactOS nothing). The theme (the look), the DPI (the size of text and screen elements) and the font smoothing (ClearType) are changed with `setup.sh`, while the
+Display Properties (right-click the desktop → Properties) open the applet this repository installs (theme, Start menu,
+DPI, font smoothing; see "Filling the small holes the shell has" below). `setup.sh` changes the same settings, while the
 session's Wine is not running: log off first.
 
 1. Start → Log Off, back to the login screen.
