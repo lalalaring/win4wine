@@ -41,9 +41,14 @@ FILES = {
 # Franklin Gothic Medium (Start panel), the Welcome screen's Arial with its
 # bold and italic faces, Microsoft Sans Serif behind MS Shell Dlg, and the
 # console's raster Terminal font (code page 437), which Wine does not have.
+# Simplified Chinese XP's own fonts where the other media have theirs: 宋体 and
+# 新宋体 (SimSun and NSimSun, in simsun.ttc), which are the shell's UI font and
+# the font of the console cells, and the console's raster font for code page
+# 936 (vga936.fon), which Wine looks for by that name (win32u's font list).
 LANGUAGE_FILES = {
     'en': dict.fromkeys(('framd.ttf', 'framdit.ttf', 'arialbd.ttf', 'arialbi.ttf', 'ariali.ttf',
                          'micross.ttf', 'vgaoem.fon'), 'fonts'),
+    'zh': dict.fromkeys(('simsun.ttc', 'vga936.fon'), 'fonts'),
 }
 
 def run(*args):

@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""The registry profile follows the language of the XP media (Japanese or English XP).
+"""The registry profile follows the language of the XP media (Japanese, Simplified Chinese or English XP).
 
-  tests/xp_language.py [ja=ASSETS] [en=ASSETS]
+  tests/xp_language.py [ja=ASSETS] [zh=ASSETS] [en=ASSETS]
 
-With extract/extract.py outputs of Japanese or English XP media, it also checks
-the language detected from them (extract/media.py).
+With extract/extract.py outputs of Japanese, Simplified Chinese or English XP
+media, it also checks the language detected from them (extract/media.py).
 """
 from pathlib import Path
 import struct
@@ -39,6 +39,17 @@ class Language(unittest.TestCase):
         self.assertEqual(values(issued, r'HKCU\Console', 'FaceName'), ['MS Gothic'])
         self.assertFalse([args for args in issued if 'MS Shell Dlg' in args])
 
+    def test_chinese_profile(self):
+        issued = commands('zh')
+        # Simplified Chinese XP: the theme's own localized SimSun fonts (0057),
+        # Wine's 75px icon spacing and its own MS Shell Dlg substitution.
+        self.assertFalse([args for args in issued if registry.FONT_PROFILE in args])
+        self.assertFalse(values(issued, r'HKCU\Control Panel\Desktop\WindowMetrics', 'IconSpacing'))
+        self.assertEqual(values(issued, r'HKCU\Console', 'FaceName'), ['NSimSun'])
+        self.assertEqual(values(issued, r'HKCU\Console', 'FontSize'), ['0x00100008'])
+        self.assertEqual(values(issued, r'HKCU\Console', 'FontFamily'), ['0x36'])
+        self.assertFalse([args for args in issued if 'MS Shell Dlg' in args])
+
     def test_english_profile(self):
         issued = commands('en')
         # English Luna: Wine reads the theme's own fonts; the 75px icon spacing is Wine's default.
@@ -54,7 +65,7 @@ class Language(unittest.TestCase):
         self.assertEqual(shell_dlg[0][-1], '/reg:64')
 
     def test_existing_values_kept(self):
-        for language in ('ja', 'en'):
+        for language in ('ja', 'zh', 'en'):
             issued = commands(language, existing=True)
             self.assertFalse(values(issued, r'HKCU\Console', 'FaceName'))
 
@@ -63,7 +74,7 @@ class Language(unittest.TestCase):
         self.assertEqual(registry.shell_view(('wineboot', '-u')), ('wineboot', '-u'))
 
     def test_classic_fonts(self):
-        for language, face, height in (('ja', 'MS UI Gothic', -12), ('en', 'Tahoma', -11)):
+        for language, face, height in (('ja', 'MS UI Gothic', -12), ('zh', 'SimSun', -12), ('en', 'Tahoma', -11)):
             issued = []
             registry.install_classic_fonts(lambda *args: issued.append(args), lambda key, name: False, language)
             self.assertEqual(len(issued), 6)
@@ -90,6 +101,24 @@ class Language(unittest.TestCase):
             self.assertIn('0x0407', media.warning('assets'))
         finally:
             media.resource_languages = saved
+
+    def test_traditional_chinese_is_untested(self):
+        # Traditional Chinese XP (0x0404) has its own fonts, console font and
+        # locale: it is set up as English XP, and the warning says so.
+        saved = media.resource_languages
+        media.resource_languages = lambda path, rtype: [0x404]
+        try:
+            self.assertEqual(media.language('assets'), 'en')
+            self.assertIn('0x0404', media.warning('assets'))
+            self.assertIn('Traditional Chinese', media.warning('assets'))
+        finally:
+            media.resource_languages = saved
+
+    def test_media_locales(self):
+        # The prefix's locale, which decides Wine's ANSI code page: 932
+        # Japanese, 936 Simplified Chinese, 1252 English.
+        self.assertEqual({name: value.split('.')[0] for name, value in media.LOCALES.items()},
+                         {'ja': 'ja_JP', 'zh': 'zh_CN', 'en': 'en_US'})
 
 
 if __name__ == '__main__':
