@@ -26,3 +26,9 @@ compile "$root/.local/bridge/wallpaper-convert.exe" -municode "$root/prefix/wall
 # Linux applications in the XP Start menu (session/linux_apps.py).
 compile "$root/.local/bridge/linux-launch.exe" "$root/session/linux-launch.c" -mwindows -luser32
 compile "$root/.local/bridge/linux-links.exe" "$root/session/linux-links.c" -lole32 -lshell32 -luuid
+# The shell's desktop Properties and the Windows tools in its Start menu:
+# display-properties.exe is the window, desk.cpl the applet the shell starts
+# ("rundll32 desk.cpl"), win-run.exe a real file a shortcut can point at.
+compile "$root/.local/bridge/display-properties.exe" "$root/bridge-wm/display-properties.c" -mwindows -lcomctl32
+compile "$root/.local/bridge/desk.cpl" -shared -static-libgcc "$root/bridge-wm/desk-cpl.c"
+compile "$root/.local/bridge/win-run.exe" -mwindows "$root/bridge-wm/win-run.c"
