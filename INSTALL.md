@@ -11,8 +11,8 @@
 ## 必要なもの
 
 - **Debian 13（trixie）amd64** のマシン（実機または仮想マシン）。デスクトップ環境は要りません。
-- **Windows XP Professional SP3（x86）の ISO**（または XP の Windows ディレクトリ）。**日本語版か英語版**です。
-  どちらかは ISO から自動で判断します。
+- **Windows XP Professional SP3（x86）の ISO**（または XP の Windows ディレクトリ）。**日本語版・簡体字中国語版・英語版**です。
+  どれかは ISO から自動で判断します。
 - ネットワーク（パッケージと Wine のソースの取得に使います）と、**40 GB ほどの空き**（Wine のソースとビルド）。
 - sudo を使える利用者。
 
@@ -38,19 +38,19 @@ scripts/setup.sh --media /path/to/WindowsXPSP3.iso --greeter
 | `--jobs N` | Wine のビルドの並列数です（既定は CPU の数） |
 | `--no-shadowfb` | 仮想マシンで、X の描き方を変えません（下の「2. スクリプトがすること」の 8） |
 | `--shell reactos` | XP のシェルの代わりに ReactOS のシェルを入れます（`--media` は要りません。下の「ReactOS のシェル」） |
-| `--lang ja\|en` | ReactOS のシェルの言語です（既定は今のロケールが日本語なら `ja`、ほかは `en`）。作った prefix はその言語のままなので、変えるときは `.local/prefix-reactos` を移してから実行します |
+| `--lang ja\|zh\|en` | ReactOS のシェルの言語です（既定は今のロケールが日本語なら `ja`、中国語なら `zh`、ほかは `en`）。作った prefix はその言語のままなので、変えるときは `.local/prefix-reactos` を移してから実行します |
 
 途中で失敗しても、そのまま実行し直せば、済んだ段階は飛ばします。ビルドしたものはすべて、このチェックアウトの `.local/` に入ります。
 
 ## 2. スクリプトがすること
 
-1. パッケージを入れます（Wine のビルドの依存、Xorg、python3-xlib、fcitx5 + Mozc など）。ディスプレイマネージャが無ければ LightDM も入れます。
+1. パッケージを入れます（Wine のビルドの依存、Xorg、python3-xlib、fcitx5 + Mozc + Pinyin など）。ディスプレイマネージャが無ければ LightDM も入れます。
 2. Wine 11.0 を取得し、パッチを当ててビルドします（`.local/wine-install`。4 コアで 1 時間半ほど。ログは `.local/wine-build.log`）。
    ビルドの間は、段階、コンパイルしたファイルの数と割合、残りの目安の時間、出力の最後の数行だけを画面に出します。
 3. bridge（ウィンドウマネージャーと代理ウィンドウ）をビルドします。
-4. ISO から必要なファイルだけを取り出します（`.local/assets`）。XP の言語（日本語か英語）もここで判断します。
-5. XP の言語のロケール（`ja_JP.UTF-8` か `en_US.UTF-8`）を作ります。
-6. XP 用の Wine の prefix を作ります（`.local/prefix`）。字体などはその XP に合わせます（下の「英語版の XP」）。
+4. ISO から必要なファイルだけを取り出します（`.local/assets`）。XP の言語（日本語・簡体字中国語・英語）もここで判断します。
+5. XP の言語のロケール（`ja_JP.UTF-8`・`zh_CN.UTF-8`・`en_US.UTF-8`）を作ります。
+6. XP 用の Wine の prefix を作ります（`.local/prefix`）。字体などはその XP に合わせます（下の「英語版の XP」「簡体字中国語版の XP」）。
 7. `~/.config/win4wine/session.json` を書き、セッション「XP Shell (Wine, X11)」を登録します。
 8. 仮想マシンで、画面のメモリーから読み戻すのが遅い仮想のグラフィックカード（QEMU の標準の VGA、Hyper-V、VirtualBox の
    VBoxVGA・VBoxSVGA）なら、X がまずメモリーの中に描くようにします（`/etc/X11/xorg.conf.d/20-win4wine-shadowfb.conf`、
@@ -70,12 +70,13 @@ scripts/setup.sh --media /path/to/WindowsXPSP3.iso --greeter
 - コマンド プロンプトは英語版の XP と同じ、ラスタ フォントの Terminal（8×12）です。
 - ようこそ画面は英語版の XP の文言と字体（Arial、Tahoma、Franklin Gothic Medium）で描きます。
 - 字体のファイルは ISO から取り出します（英語版の ISO にある Franklin Gothic、Arial の太字・斜体、Microsoft Sans Serif、Terminal）。
-- 一つのマシンで日本語版と英語版を混ぜることは想定していません。ようこそ画面はマシンで一つなので、最後に `--greeter` で入れた方になります。
-- 日本語版と英語版以外の XP は、英語版と同じ設定（ロケール `en_US.UTF-8` を含む）で入れます。一切試していないので、`setup.sh` は警告を出します（止まりはしません）。
+- 一つのマシンで日本語版・簡体字中国語版・英語版を混ぜることは想定していません。ようこそ画面はマシンで一つなので、
+  最後に `--greeter` で入れた方になります。
+- 日本語版・簡体字中国語版・英語版以外の XP は、英語版と同じ設定（ロケール `en_US.UTF-8` を含む）で入れます。一切試していないので、`setup.sh` は警告を出します（止まりはしません）。
 
 日本語版から英語版へ（またはその逆に）切り替えるときは、取り出したファイルと prefix を別の場所に移してから、もう一方の ISO で
 `setup.sh` を実行し直します。`setup.sh` は、それらが既にあれば作り直さないためです。ビルドした Wine はそのまま使います。
-`session.json` のロケールと日本語入力の設定は `setup.sh` が書き換えます。ログオフし、Ctrl+Alt+F2 の文字の画面（または SSH）で:
+`session.json` のロケールと入力法の設定は `setup.sh` が書き換えます。ログオフし、Ctrl+Alt+F2 の文字の画面（または SSH）で:
 
 ```sh
 cd ~/win4wine
@@ -86,6 +87,27 @@ scripts/setup.sh --media /path/to/English-XP.iso --greeter
 
 うまく動いたら、`-ja` を付けたフォルダは消して構いません。
 
+## 簡体字中国語版の XP
+
+簡体字中国語版の XP SP3 の ISO を `--media` に渡すと、簡体字中国語版の XP に合わせて入れます。オプションは同じです。
+
+- ロケールは `zh_CN.UTF-8` です（Wine はここから ANSI コードページ 936 を決めます）。中国語入力は fcitx5 + Pinyin で、
+  `session.json` の `input_method` を `fcitx5` にします。
+- 字体は簡体字中国語版の XP と同じ宋体（SimSun）9 ポイントです。Luna は、利用者の ISO にある中国語版の luna.msstyles の値（0057）を読み、
+  クラシックは `prefix/registry.py` が入れます。Linux のアプリの字体も SimSun です。
+- コマンド プロンプトは新宋体（NSimSun、simsun.ttc）の 8×16 升です。XP 自身はラスタ フォントの新宋体を使うので、ISO から vga936.fon も取り出します。
+- 2 バイト文字を含む行の折り返しは、日本語版と同じ仕組み（0037。936 も対象）で行います。コンソールの 2 升の扱いも同じです（0042）。
+- 入力法はセッションが fcitx5 の設定（`~/.config/fcitx5/profile`）に入れます。すでにある入力法はそのまま残し、足りないときだけ足します。
+  Ctrl+Space で切り替えます（`fcitx5-chinese-addons` が必要です。`setup.sh` が入れます）。
+- `--greeter` のときは、logonui の言語が中国語なら宋体で描きます。
+- **まだ中国語版の XP の ISO では確かめていません。** 言語の判断、字体、ロケール、コンソールの升の大きさ（新宋体 8×16）、クラシックの字体
+  （宋体 9 ポイント）、ようこそ画面の配置は、XP の既定値と日本語版で測った値を基にしたもので、中国語版の実機で測った値ではありません。
+  中国語版の XP があるなら、`python3 tests/xp_language.py zh=.local/assets` と実際の画面を見比べてください。
+- 繁体字中国語版（0x0804 以外の中国語、たとえば 0x0404）は英語版と同じ設定で入れます。字体（MingLiU）もコンソールの字体も違うので、
+  そのままでは日本語版・簡体字中国語版のようには使えません。`setup.sh` は警告を出します。
+- 日本語版・簡体字中国語版・英語版を切り替えるときは、上の「英語版の XP」と同じく、`.local/assets` と `.local/prefix` を別の場所に移してから
+  もう一方の ISO で `setup.sh` を実行し直します。
+
 ## ReactOS のシェル
 
 XP の ISO が無いときは、ReactOS のシェル（クラシックの見た目）を入れられます。
@@ -94,11 +116,15 @@ XP の ISO が無いときは、ReactOS のシェル（クラシックの見た�
 scripts/setup.sh --shell reactos --lang ja
 ```
 
+（中国語（簡体字）なら `--lang zh`、英語なら `--lang en`）
+
 - ReactOS 0.4.16 のリリース（約 200 MB）を GitHub から取得し、SHA-256 を確かめて、シェルのファイルだけを `.local/assets-reactos` に
   取り出します。取得した zip は `.local/dl` に残ります。
 - prefix は `.local/prefix-reactos`、設定は `~/.config/win4wine/reactos-session.json`、セッションは「**ReactOS Shell (Wine, X11)**」です。
   XP のシェルの設定とセッションには触れないので、両方を入れられます（Wine と bridge は共通です）。
 - `--greeter` を付けると、ログイン画面が ReactOS のログオンの画面になります。
+- `--lang` は `ja`・`zh`（簡体字中国語）・`en` です。シェルの言語、CJK のフォントの FontLink、スタートメニューのフォルダの名前、
+  セッションのロケールと入力法がこれで決まります。
 - `--theme` は `classic`（既定。Windows 2000 風のクラシック）か、ReactOS のテーマ `lautus`、`lunar`、`mizu` です。作った後でも
   `--theme` を付けて実行し直せば変わります。
 - `--wayland` を付けると、Wayland のセッション「ReactOS Shell (Wine, Wayland)」も入れます（X11 のセッション以上に実験的です）。
@@ -116,6 +142,7 @@ scripts/setup.sh --shell reactos --lang ja
 | やりたいこと | 方法 |
 |---|---|
 | 日本語入力の切り替え | Ctrl+Space または 全角/半角。通知領域のアイコンのクリックでも切り替えられます |
+| 中国語入力の切り替え（簡体字中国語版の XP） | Ctrl+Space。通知領域のアイコンのクリックでも切り替えられます |
 | Linux のアプリを起動 | スタート → すべてのプログラム（名前に「(Linux)」が付いています） |
 | Windows のアプリを入れる | 端末で `wine setup.exe`。セッションの `PATH` の先頭にはこの Wine が入っています |
 | スタートメニュー | Windows キー、Ctrl+Esc |
@@ -127,9 +154,9 @@ scripts/setup.sh --shell reactos --lang ja
 | キー | 既定 | 意味 |
 |---|---|---|
 | `wine`, `prefix` | （setup.sh が書きます） | 使う Wine と prefix の絶対パス |
-| `locale` | `ja_JP.UTF-8`（英語版の XP では `en_US.UTF-8`） | セッションのロケール |
-| `input_method` | `fcitx5`（英語版の XP では無し） | 入力メソッド。省くと起動しません |
-| `linux_font` | `MS UI Gothic`（英語版の XP では `Tahoma`） | Linux のアプリの字体。`null` で変えません |
+| `locale` | `ja_JP.UTF-8`（簡体字中国語版の XP では `zh_CN.UTF-8`、英語版では `en_US.UTF-8`） | セッションのロケール |
+| `input_method` | `fcitx5`（英語版の XP では無し） | 入力メソッド。省くと起動しません。日本語版は Mozc、簡体字中国語版は Pinyin が無ければセッションが fcitx5 の設定に入れます |
+| `linux_font` | `MS UI Gothic`（簡体字中国語版の XP では `SimSun`、英語版では `Tahoma`） | Linux のアプリの字体。`null` で変えません |
 | `linux_menu` | `true` | Linux のアプリをスタートメニューに入れます |
 | `welcome_screen` | `true` | ログイン後とログオフ中に XP の画面を出します |
 | `cursor_theme` | `win4wine-xp` | カーソルのテーマ。`null` で使いません |
@@ -165,7 +192,8 @@ scripts/setup.sh --shell reactos --lang ja
 - DPI を上げると、XP と同じく文字と寸法が大きくなり、アイコンは 32×32 のままです。Linux のアプリも同じ DPI で文字が大きくなります
   （GTK は 192 以上で部品も 2 倍になります）。
 - `--font-smoothing cleartype` は、XP の「画面のフォントの縁を滑らかにする」で「ClearType」を選んだのと同じです（既定は XP と同じ「標準」）。
-  XP と同じく、MS UI Gothic の小さい文字（メニューなど、22 ピクセルまで）はビットマップのままで、Tahoma や Arial などの文字と大きい文字が
+  XP と同じく、埋め込みビットマップのある字体の小さい文字（日本語版の MS UI Gothic は 22 ピクセルまで、簡体字中国語版の宋体はその字体の
+  ビットマップのある大きさまで）はビットマップのままで、Tahoma や Arial などの文字と大きい文字が
   ClearType になります。Linux のアプリの文字も、液晶の RGB の並びに合わせて描かれます（X11 のセッション）。
 
 Wayland のセッションでは、Linux のアプリは出力ごとの倍率（`outputs` の `scale`）で描かれ、XP のシェルは DPI で描かれて、
@@ -174,6 +202,10 @@ Wayland のセッションでは、Linux のアプリは出力ごとの倍率（
 ## うまく動かないとき
 
 - セッションのログは `~/.local/state/win4wine/` にあります（前回の分は `*.log.1`）。
+- Debian 13 以外のディストリビューション（openKylin など）でも動きますが、確かめているのは Debian 13 だけです。パッケージの名前や
+  依存関係が違うので、`setup.sh` は**そのディストリビューションに無いパッケージを警告して省きます**（例: openKylin 3.0 には
+  `fcitx5-frontend-gtk4` が無く、`xterm` は依存の `xbitmaps` が無いので入りません。無くても GTK3・Qt5・Qt6 のアプリには入力できます）。
+  1 回のまとめた導入に失敗したときは、パッケージを 1 つずつ入れ直し、入れられないものだけを省きます。
 - XP のシェルが続けて落ちると、Wine 標準の explorer と xterm に切り替わります。
 - 2026-10-13 より前の `setup.sh` は、新しい prefix の見た目の設定（`Setting the theme failed`）で失敗することがありました。
   更新してから `scripts/setup.sh --media ISO --theme luna`（または `classic`）を実行し直してください。
@@ -193,3 +225,49 @@ sudo rm -f /etc/X11/xorg.conf.d/20-win4wine-shadowfb.conf   # 仮想マシンの
 
 ビルドしたもの、取り出したファイル、prefix は、このチェックアウトの `.local/` を消せば消えます。
 スクリプトが入れたパッケージ（LightDM を含みます）と、ディスプレイマネージャの切り替えは元に戻しません。
+
+## シェルの小さな穴をふさぐもの
+
+XP のシェルが持っていて Wine に無い部品は、このリポジトリが自分で作ったもので埋めます。
+
+- **デスクトップの右クリック → プロパティ**: シェルは `rundll32 desk.cpl` を起動しますが、Wine の `desk.cpl` は中身が空です。`bridge-wm/desk-cpl.c`（アプレット）と
+ `bridge-wm/display-properties.c`（画面）をビルドし、`prefix/reactos.py` が prefix に入れて `rundll32.exe` に `desk.cpl=native` を設定します。
+ 項目はテーマ・スタート メニュー・DPI・フォント スムージングで、値は `prefix/display.py` と同じ書き方をします。
+- **Windows のツール**: Wine の組み込みプログラムは prefix の中のファイルではないため、ショートカットは存在しない対象を指せません。`bridge-wm/win-run.c` を唯一の対象にして、
+ タスク マネージャー・メモ帳・コマンド プロンプト・レジストリ エディタ・コントロール パネル・Wine の構成をスタート メニューの「アクセサリ」に置きます。
+- **CJK が豆腐になる件**: Wine の中国語の既定 UI フォントは SimSun、日本語は MS UI Gothic で、
+ ReactOS の prefix にはどちらもありません（ReactOS 自身のフォントを持っています）。そのため Wine 自身のウィンドウの漢字が四角になります。`prefix/reactos.py` が
+ `FontSubstitutes` と `HKCU\Software\Wine\Fonts\Replacements` で、欠けているファミリを prefix にある DroidSansFallback に向けます。
+
+## Proton の互換レイヤーをこの Wine に入れる
+
+Proton は別の Wine ビルドですが、ゲームが実際に受け取るのは Direct3D の翻訳レイヤー（DXVK と VKD3D-Proton）で、これは普通の Windows DLL です。
+Vulkan 対応でビルドされた Wine ならどれでも読み込めます。
+
+```sh
+# Proton を用意する（GE-Proton は GitHub Releases から）
+tar xzf GE-Proton*-x86_64.tar.gz -C ~/.local/proton
+# レイヤーを prefix に入れる（既定は ~/.local/prefix-games）
+scripts/proton-layers.sh install ~/.local/prefix-games
+scripts/proton-layers.sh check   ~/.local/prefix-games    # DXVK のログと上書きの確認
+```
+
+この Wine が Vulkan 対応かどうかは `WINEDEBUG=+vulkan wine --version` の警告、または `winevulkan.dll` の有無で分かります。無い場合は `wine/build.sh` の
+前に `libvulkan-dev` を入れてビルドし直してください（このリポジトリの Wine は既定で Vulkan を検出します）。
+
+### .exe をダブルクリックしたとき
+
+- **Windows のシェルの中**（ReactOS のデスクトップやエクスプローラ）: そのまま動きます。シェルは `HKCR\exefile\shell\open\command`（`"%1" %*`）でプログラムを起動し、
+ それがセッションの Wine、つまりこのリポジトリが Vulkan 対応でビルドした Wine と、その prefix に入れた Proton のレイヤーを使います。確認したログ:
+
+```text
+Loaded L"C:\users\openkylin\Desktop\probe-d3d11.exe" : native
+info:  DXVK: v3.1.1-75-g71ec7b5be6c517d0
+info:  D3D11InternalCreateDevice: Maximum supported feature level: D3D_FEATURE_LEVEL_11_1
+```
+
+- **Linux 側**（openKylin 自身のデスクトップやファイルマネージャー）: 何も .exe を知らないので、`scripts/exe-handler.sh` が MIME ハンドラー（
+ `win4wine-exe.desktop`）、ランナー（`win4wine-run-exe`）、そして同じ Wine とレイヤーを使う `wine-games` を入れます。`gio open program.exe`（ダブルクリッ
+ クと同じ経路）で確認できます。起動した内容は `~/.local/state/win4wine/run.log` に残ります。
+
+`wine-games` は Vulkan 対応の Wine（lib に `winevulkan.dll` があるもの）を選び、prefix を先に初期化してからレイヤーを入れます。だから初回のダブルクリックでも DXVK が効きます。
