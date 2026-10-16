@@ -28,25 +28,34 @@ WINDOWS_PROGRAMS = r'C:\ProgramData\Microsoft\Windows\Start Menu\Programs'
 STATE = 'drive_c/xp/linux-apps'
 WINDOWS_STATE = r'C:\xp\linux-apps'
 ICON_SIZES = (16, 32, 48)
-# XDG main categories to Start menu folders, as on XP where one exists
-# (Japanese, other languages). The first category of an entry that is
-# listed here decides; TerminalEmulator goes with XP's command prompt.
+# XDG main categories to Start menu folders, named as XP's own shell names them
+# in the language of its media (Japanese, Simplified Chinese, English). The
+# first category of an entry that is listed here decides; TerminalEmulator goes
+# with XP's command prompt. Network applications go to the folder XP's
+# Communications group uses (インターネット / 通讯), as there is no Internet
+# folder of its own.
 FOLDERS = (
-    ('TerminalEmulator', ('アクセサリ', 'Accessories')),
-    ('AudioVideo', (r'アクセサリ\エンターテイメント', r'Accessories\Entertainment')),
-    ('Audio', (r'アクセサリ\エンターテイメント', r'Accessories\Entertainment')),
-    ('Video', (r'アクセサリ\エンターテイメント', r'Accessories\Entertainment')),
-    ('Development', ('開発', 'Development')),
-    ('Education', ('教育', 'Education')),
-    ('Game', ('ゲーム', 'Games')),
-    ('Graphics', ('グラフィックス', 'Graphics')),
-    ('Network', ('インターネット', 'Internet')),
-    ('Office', ('オフィス', 'Office')),
-    ('Science', ('科学', 'Science')),
-    ('Settings', ('設定', 'Settings')),
-    ('System', (r'アクセサリ\システム ツール', r'Accessories\System Tools')),
-    ('Utility', ('アクセサリ', 'Accessories')),
+    ('TerminalEmulator', {'ja': 'アクセサリ', 'zh': '附件', 'en': 'Accessories'}),
+    ('AudioVideo', {'ja': r'アクセサリ\エンターテイメント', 'zh': r'附件\娱乐',
+                    'en': r'Accessories\Entertainment'}),
+    ('Audio', {'ja': r'アクセサリ\エンターテイメント', 'zh': r'附件\娱乐',
+               'en': r'Accessories\Entertainment'}),
+    ('Video', {'ja': r'アクセサリ\エンターテイメント', 'zh': r'附件\娱乐',
+               'en': r'Accessories\Entertainment'}),
+    ('Development', {'ja': '開発', 'zh': '开发', 'en': 'Development'}),
+    ('Education', {'ja': '教育', 'zh': '教育', 'en': 'Education'}),
+    ('Game', {'ja': 'ゲーム', 'zh': '游戏', 'en': 'Games'}),
+    ('Graphics', {'ja': 'グラフィックス', 'zh': '图形', 'en': 'Graphics'}),
+    ('Network', {'ja': 'インターネット', 'zh': '通讯', 'en': 'Internet'}),
+    ('Office', {'ja': 'オフィス', 'zh': '办公', 'en': 'Office'}),
+    ('Science', {'ja': '科学', 'zh': '科学', 'en': 'Science'}),
+    ('Settings', {'ja': '設定', 'zh': '设置', 'en': 'Settings'}),
+    ('System', {'ja': r'アクセサリ\システム ツール', 'zh': r'附件\系统工具',
+                'en': r'Accessories\System Tools'}),
+    ('Utility', {'ja': 'アクセサリ', 'zh': '附件', 'en': 'Accessories'}),
 )
+# The languages whose folder names XP's shell uses; another locale takes English.
+LANGUAGES = ('ja', 'zh')
 INVALID = str.maketrans({c: '_' for c in '\\/:*?"<>|'} | {chr(c): None for c in range(32)})
 
 
@@ -208,11 +217,12 @@ def command(entry, path, locales):
     return args
 
 
-def folder(entry, japanese):
+def folder(entry, language='en'):
+    """The Start menu folder of an entry (FOLDERS), in LANGUAGE's XP names."""
     categories = strings(entry, 'Categories')
     for category, names in FOLDERS:
         if category in categories:
-            return names[0 if japanese else 1]
+            return names.get(language, names['en'])
     return ''
 
 
@@ -421,7 +431,11 @@ class Menu:
         self.programs = prefix / PROGRAMS
         self.state_dir = prefix / STATE
         self.state_file = self.state_dir / 'state.json'
-        self.japanese = (locale_names() or ['C'])[-1] == 'ja'
+        # The folders' names follow the session's locale, like the names of the
+        # entries themselves: the XP media's language (Japanese, Simplified
+        # Chinese), or English for any other locale.
+        locale = (locale_names() or ['C'])[-1]
+        self.language = locale if locale in LANGUAGES else 'en'
 
     def load(self):
         try:
@@ -452,7 +466,7 @@ class Menu:
             name = (localized(entry, 'Name', locales) or '').translate(INVALID).strip(' .')
             if not args or not name:
                 continue
-            directory = folder(entry, self.japanese)
+            directory = folder(entry, self.language)
             link = f'{name} (Linux)'
             number = 2
             while (directory, link.lower()) in used:

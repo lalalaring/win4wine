@@ -39,9 +39,13 @@ MESSAGE = 320                   # where the left panel's message wraps, at every
 # by the template's face and size: Japanese XP's MS UI Gothic 9pt is 7x12, English
 # XP's MS Shell Dlg 8pt (Microsoft Sans Serif) 6x13 (the dialog is 313x199 there).
 BASE_UNITS = {('ms ui gothic', 9): (7, 12), ('ms shell dlg', 8): (6, 13)}
-# The font of tooltips and balloons (SPI's status font) by the language of logonui:
-# Japanese XP's MS UI Gothic 9pt, English XP's Tahoma 8pt.
-SYSTEM_FONTS = {0x411: ('MS UI Gothic', 9), 0x409: ('Tahoma', 8)}
+# The font of tooltips and balloons (SPI's status font) by the language of
+# logonui: Japanese XP's MS UI Gothic 9pt, Simplified Chinese XP's SimSun 9pt,
+# English XP's Tahoma 8pt.
+SYSTEM_FONTS = {'ja': ('MS UI Gothic', 9), 'zh': ('SimSun', 9), 'en': ('Tahoma', 8)}
+# The Welcome screen's language, by the LANGID of logonui's own resources; XP in
+# any other language is set up as English XP (see logonui_language).
+LANGUAGES = {0x411: 'ja', 0x804: 'zh', 0x409: 'en'}
 # The faded screen behind the shutdown dialog: an affine fit per channel of XP's final state
 # (mean error under 1, at most 11).
 DIM = ((0.1435, 0.6198, 0.1571, -4.37), (0.0952, 0.6789, 0.1426, -3.11), (0.0722, 0.6450, 0.1985, -3.15))
@@ -73,10 +77,19 @@ def use_fonts(root, cache):
     os.environ['FONTCONFIG_FILE'] = str(fontconfig(Path(root) / 'fonts', Path(cache), english))
 
 
+def logonui_language(root):
+    """The language of the Welcome screen's own resources: 'ja', 'zh' or 'en'.
+
+    It is read from the LANGID of logonui's strings; XP in any other language
+    (Traditional Chinese included) is set up as English XP. No resources at all
+    is Japanese, as before English XP was supported."""
+    languages = Resources(Path(root) / 'system32/logonui.exe').languages(6)
+    return LANGUAGES.get(languages[0] if languages else 0x411, 'en')
+
+
 def english_media(root):
-    """Whether the Welcome screen's files are English XP's (logonui's strings are not in
-    Japanese: XP in other languages is set up as English XP)."""
-    return 0x411 not in Resources(Path(root) / 'system32/logonui.exe').languages(6)
+    """Whether the Welcome screen's files are English XP's (see logonui_language)."""
+    return logonui_language(root) == 'en'
 
 
 def config_dpi(config):
@@ -102,8 +115,9 @@ def fontconfig(fonts, directory, english=False):
     """Write a fonts.conf that adds the XP fonts and renders them as XP's standard smoothing does.
 
     XP follows each font's gasp table: MS UI Gothic is drawn without
-    antialiasing (from its bitmaps) up to 24 pixels, Arial up to 17.
-    English XP's fonts are fully hinted (with ENGLISH, see setup()).
+    antialiasing (from its bitmaps) up to 24 pixels, SimSun (Simplified
+    Chinese XP's face) up to the 16 pixels its own bitmap strikes reach, Arial
+    up to 17. English XP's fonts are fully hinted (with ENGLISH, see setup()).
     """
     directory = Path(directory).resolve()
     fonts = Path(fonts).resolve()
@@ -115,7 +129,7 @@ def fontconfig(fonts, directory, english=False):
     <edit name="antialias" mode="assign"><bool>false</bool></edit>
     <edit name="embeddedbitmap" mode="assign"><bool>true</bool></edit>
     <edit name="hintstyle" mode="assign"><const>hintfull</const></edit>
-  </match>''' for family, size in (('MS UI Gothic', 24), ('Arial', 17)))
+  </match>''' for family, size in (('MS UI Gothic', 24), ('SimSun', 16), ('Arial', 17)))
     if english:
         rules += ''.join(f'''
   <match target="font">
@@ -256,12 +270,13 @@ class Assets:
         self.luna = Resources(theme) if theme.is_file() else None
         # The faces logonui's UI file names: rcstr(1) for the left panel, rcstr(2)
         # for the bottom band, rcstr(3) for the accounts (all MS UI Gothic on
-        # Japanese XP; arial, tahoma and tahoma on English XP).
+        # Japanese XP, SimSun on Simplified Chinese XP; arial, tahoma and tahoma
+        # on English XP).
         self.face = self.logonui.string(1) or 'MS UI Gothic'
         self.bottom_face = self.logonui.string(2) or self.face
         self.account_face = self.logonui.string(3) or self.face
-        languages = self.logonui.languages(6)
-        self.system_font = SYSTEM_FONTS[0x411 if not languages or languages[0] == 0x411 else 0x409]
+        self.language = logonui_language(root)
+        self.system_font = SYSTEM_FONTS[self.language]
         self.dialog = self.template(self.msgina.find(5, 20100))
 
     def bitmap(self, module, number, key=None, alpha=False, dimmed=False):
@@ -317,7 +332,9 @@ class Assets:
 
 
 # The XP fonts by family (in lower case, as GDI matches names): file and index in a collection.
-FONT_FILES = {'ms ui gothic': ('msgothic.ttc', 2), 'arial': ('arial.ttf', 0), 'tahoma': ('tahoma.ttf', 0),
+# SimSun is in index 0 of simsun.ttc (index 1 is NSimSun, the fixed-pitch face).
+FONT_FILES = {'ms ui gothic': ('msgothic.ttc', 2), 'simsun': ('simsun.ttc', 0),
+              'arial': ('arial.ttf', 0), 'tahoma': ('tahoma.ttf', 0),
               'franklin gothic medium': ('framd.ttf', 0), 'microsoft sans serif': ('micross.ttf', 0)}
 # Their own bold and italic faces, by (family, bold, italic). English XP media has
 # them; where a face is missing, GDI simulates the style from the regular one.
@@ -327,11 +344,15 @@ STYLE_FILES = {('arial', True, False): 'arialbd.ttf', ('arial', False, True): 'a
 # Names GDI draws with another family: XP's font substitute for MS Shell Dlg, and the
 # family XP's font mapper picks for msgina's "Franklin Gothic" (seen on English XP).
 SUBSTITUTES = {'ms shell dlg': 'microsoft sans serif', 'franklin gothic': 'franklin gothic medium'}
+# Simplified Chinese XP substitutes MS Shell Dlg, the shutdown dialog's font, with
+# its own 宋体 (SimSun); the other names are the ones above there too.
+SUBSTITUTES_ZH = dict(SUBSTITUTES, **{'ms shell dlg': 'simsun'})
 
 
-def font_family(name):
+def font_family(name, language='en'):
     """NAME as the family it is drawn with, in lower case if it is one of the XP fonts."""
-    key = SUBSTITUTES.get(name.lower(), name.lower())
+    substitutes = SUBSTITUTES_ZH if language == 'zh' else SUBSTITUTES
+    key = substitutes.get(name.lower(), name.lower())
     return key if key in FONT_FILES else name
 
 
@@ -428,7 +449,7 @@ class Text:
 
     def layout(self, text, px, bold=False, italic=False, underline=False, family=None, width=None,
                align='left', mnemonic=False):
-        family = font_family(family or self.assets.face)
+        family = font_family(family or self.assets.face, self.assets.language)
         style = self.style_file(family, bold, italic) if bold or italic else None
         simulated = family in FONT_FILES and not style
         # Set, not parsed: from_string() takes the "Medium" of Franklin Gothic Medium for a weight.

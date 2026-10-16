@@ -8,6 +8,8 @@ __pycache__/
 # Microsoft media/assets and generated PE files belong only in ignored local zones.
 *.iso
 *.cab
+*.zip
+*.7z
 *.exe
 *.dll
 *.msstyles

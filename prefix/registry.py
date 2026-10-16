@@ -9,8 +9,11 @@ FONT_PROFILE = r'HKCU\Software\Win4Wine\ThemeProfiles\JapaneseXPLuna'
 CLASSIC_FONT_PROFILE = r'HKCU\Software\Win4Wine\ThemeProfiles\XPClassic'
 # The classic theme's fonts per language of the XP media, read with public SPI
 # calls on the reference machines: Japanese XP uses MS UI Gothic 9pt, English
-# XP Tahoma 8pt (captions bold in both).
-CLASSIC_FONTS = {'ja': ('MS UI Gothic', -12), 'en': ('Tahoma', -11)}
+# XP Tahoma 8pt (captions bold in both). Simplified Chinese XP uses SimSun
+# (宋体) 9pt, the same size as the Japanese face; the face is XP's own default
+# and its 9pt is the height of the Japanese baseline, so it still has to be
+# confirmed against a Chinese reference machine (see font_profile_defaults).
+CLASSIC_FONTS = {'ja': ('MS UI Gothic', -12), 'zh': ('SimSun', -12), 'en': ('Tahoma', -11)}
 
 
 def shell_view(args):
@@ -116,7 +119,10 @@ def install(run, exists, language='ja'):
 
     English XP needs no font profile and keeps Wine's 75px icon spacing: Wine's
     reading of the English Luna theme and its defaults give the fonts and
-    metrics that public calls report on the English reference machine."""
+    metrics that public calls report on the English reference machine.
+    Simplified Chinese XP needs none either: patch 0057 reads the Chinese Luna
+    theme's own localized values (its SimSun fonts) out of the user's
+    luna.msstyles, which is the mechanism that was measured for Japanese."""
     japanese = language == 'ja'
     # Seed defaults once. Migrations preserve disabled profiles, custom fonts,
     # and even unrecognized values: the builtin reader validates or falls back.
@@ -136,6 +142,8 @@ def install(run, exists, language='ja'):
     # Japanese XP lays desktop icons out 78px apart (SPI_GETICONMETRICS on the
     # reference machine); Wine's 75px default wraps labels such as My Computer
     # that are 74px wide in MS UI Gothic. Seed once, then keep user changes.
+    # Simplified Chinese XP keeps Wine's 75px: 宋体 draws its widest desktop
+    # label (我的电脑, four full-width glyphs at 12px) 48px wide, so nothing wraps.
     marker = r'HKCU\Software\Win4Wine\Profile'
     if japanese and not exists(marker, 'IconSpacing'):
         run('reg', 'add', r'HKCU\Control Panel\Desktop\WindowMetrics', '/v', 'IconSpacing',
@@ -169,23 +177,36 @@ def install(run, exists, language='ja'):
     # glyphs of MS Gothic at 16 pixels (pixel-equal; the half-width ones come
     # from its raster font vga932.fon). Wine's conhost would pick the first
     # fixed-pitch font, which has no Japanese glyphs; with these values and
-    # Wine patch 0041 it lays the 16-pixel font out in 8x18 cells as XP does.
+    # Wine patch 0042 it lays the 16-pixel font out in 8x18 cells as XP does.
     # The English family name keeps reg.exe's command line ASCII. Seed once.
     # English XP's console draws 8x12 cells with its raster Terminal font
     # (vgaoem.fon, extracted for English media), as on the English reference
     # machine; Wine's conhost would take a TrueType fixed-pitch font instead.
+    # Simplified Chinese XP's console draws 新宋体 in 8x16 cells (its raster
+    # font for code page 936, vga936.fon). The prefix names the TrueType face of
+    # the same font (NSimSun, in simsun.ttc) at the same cell size, so reg.exe's
+    # command line stays ASCII; the cells and the glyph pixels still have to be
+    # compared with a Chinese reference machine (the Japanese 8x18 above was
+    # measured). Wine patch 0042 gives a character of code page 936 two cells
+    # through the same code path as 932.
     if not exists(marker, 'ConsoleFont'):
         console = r'HKCU\Console'
-        font = (('MS Gothic', '0x00120008', '0x36') if japanese else ('Terminal', '0x000c0008', '0x30'))
+        fonts = {'ja': ('MS Gothic', '0x00120008', '0x36'),
+                 'zh': ('NSimSun', '0x00100008', '0x36'),
+                 'en': ('Terminal', '0x000c0008', '0x30')}
+        font = fonts.get(language, fonts['en'])
         for name, kind, value in (('FaceName', 'REG_SZ', font[0]), ('FontSize', 'REG_DWORD', font[1]),
                                   ('FontFamily', 'REG_DWORD', font[2]), ('FontWeight', 'REG_DWORD', '400')):
             run('reg', 'add', console, '/v', name, '/t', kind, '/d', value, '/f')
         run('reg', 'add', marker, '/v', 'ConsoleFont', '/t', 'REG_DWORD', '/d', '1', '/f')
-    if not japanese:
+    if language == 'en':
         # English XP maps MS Shell Dlg to Microsoft Sans Serif (its micross.ttf,
         # extracted for English media); Wine's default for code page 1252 is
         # Tahoma. Wine reads the 64-bit view and rewrites the value only when
         # the prefix's code page changes, so it is set at every update.
+        # Japanese and Simplified Chinese XP keep Wine's own substitution, which
+        # is the font those XP versions use (MS UI Gothic for 932, SimSun for
+        # 936; win32u's per-code-page font list).
         run('reg', 'add', r'HKLM\Software\Microsoft\Windows NT\CurrentVersion\FontSubstitutes',
             '/v', 'MS Shell Dlg', '/t', 'REG_SZ', '/d', 'Microsoft Sans Serif', '/f', '/reg:64')
     for clsid, name, tip in NAMESPACE_STRINGS:

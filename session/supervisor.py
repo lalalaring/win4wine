@@ -21,6 +21,7 @@ from xml.sax.saxutils import escape
 from Xlib import X, display, error
 
 import dpi
+import input_method
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_CONFIG = Path.home() / '.config/win4wine/session.json'
@@ -34,6 +35,9 @@ SHELLS = {
                     stage=('prefix/reactos.py', 'stage'), welcome=False, folders=True),
 }
 IM_VARIABLES = ('XMODIFIERS', 'GTK_IM_MODULE', 'QT_IM_MODULE', 'SDL_IM_MODULE', 'CLUTTER_IM_MODULE')
+# Linux applications take the XP shell's UI font: MS UI Gothic on Japanese XP,
+# SimSun (宋体) on Simplified Chinese XP, Tahoma on English XP.
+LINUX_FONTS = {'ja': 'MS UI Gothic', 'zh': 'SimSun', 'en': 'Tahoma'}
 
 
 class Session:
@@ -113,9 +117,10 @@ class Session:
             self.env.update(XCURSOR_THEME=self.cursor_theme)
         else:
             self.cursor_theme = None
-        # Linux applications take the XP shell's UI font: MS UI Gothic on
-        # Japanese XP, Tahoma on English XP (the prefix's "language").
-        self.linux_font = config.get('linux_font', 'Tahoma' if self.language() == 'en' else 'MS UI Gothic')
+        # Linux applications take the XP shell's UI font, MS UI Gothic on
+        # Japanese XP, SimSun on Simplified Chinese XP, Tahoma on English XP
+        # (the prefix's "language").
+        self.linux_font = config.get('linux_font', self.default_linux_font())
         self.linux_menu = config.get('linux_menu', True)
         self.composite = config.get('composite', True)
         # Wine's ExitWindowsEx records log off / shut down / restart here,
@@ -149,11 +154,27 @@ class Session:
         self.status('starting')
 
     def language(self):
-        """The language of the XP prefix's media (prefix/create.py); Japanese before English was supported."""
+        """The language of the prefix's shell media (prefix/create.py, prefix/reactos.py).
+
+        Prefixes made before English XP was supported are Japanese. The XP
+        prefix records "language" (ja, zh or en); the ReactOS one records the
+        same choice as "lang" (ja or en)."""
         try:
-            return json.loads((self.prefix / self.shell['marker']).read_text()).get('language', 'ja')
+            marker = json.loads((self.prefix / self.shell['marker']).read_text())
         except (OSError, ValueError):
             return 'ja'
+        return marker.get('language', marker.get('lang', 'ja'))
+
+    def default_linux_font(self):
+        """The font Linux applications get from the session's configuration.
+
+        The XP shell has XP's own UI font in its prefix. The ReactOS shell has
+        no XP fonts, so its CJK languages take the system's Noto CJK (setup.sh
+        installs it for them)."""
+        language = self.language()
+        if self.shell['marker'] == 'reactos-shell.json':
+            return {'ja': 'Noto Sans CJK JP', 'zh': 'Noto Sans CJK SC'}.get(language, 'Tahoma')
+        return LINUX_FONTS.get(language, 'Tahoma')
 
     @staticmethod
     def find_cursor_theme(name):
@@ -207,9 +228,10 @@ class Session:
         base = Path(os.environ.get('XDG_CONFIG_HOME') or Path.home() / '.config') / 'fcitx5'
         self.fcitx_option(base / 'config', '[Behavior]',
                           {'ShowInputMethodInformation': 'False', 'showInputMethodInformationWhenFocusIn': 'False'})
-        # Japanese input shows the text being converted in the text box itself
-        # (on-the-spot); fcitx5 offers XIM clients only over-the-spot otherwise,
-        # which shows it in the candidate window. Wine gives the caret's place.
+        # Japanese and Chinese input show the text being converted in the text
+        # box itself (on-the-spot); fcitx5 offers XIM clients only
+        # over-the-spot otherwise, which shows it in the candidate window.
+        # Wine gives the caret's place.
         self.fcitx_option(base / 'conf/xim.conf', None, {'UseOnTheSpot': 'True'})
 
     @staticmethod
@@ -260,6 +282,13 @@ class Session:
                 for package in missing:
                     print(f'{package} is not installed: Qt applications get no input method', file=log)
         self.fcitx_defaults()
+        # fcitx5 starts with no input method: give it the one the shell's
+        # language uses (Japanese XP's Mozc, Simplified Chinese XP's Pinyin),
+        # so Ctrl+Space works from the first login (session/input_method.py).
+        im_state = input_method.ensure(self.language())
+        if im_state == 'unsupported':
+            with (self.state / 'fcitx5.log').open('a') as log:
+                print('fcitx5 profile has no Default group: add the input method with fcitx5-configtool', file=log)
         return self.spawn(['fcitx5'], 'fcitx5')
 
     def start_linux_menu(self):
@@ -551,14 +580,19 @@ class Session:
         env['WINEDLLOVERRIDES'] = 'explorer,shell32,shdocvw,browseui,shlwapi,comctl32,uxtheme=b;mscoree,mshtml='
         self.wine_envs.append(env)
         self.status('fallback')
-        # A Wine desktop plus file browser and a native terminal gives an escape route.
+        # A Wine desktop plus file browser and a terminal gives an escape route.
+        # A machine without xterm gets whatever terminal it has; with none, the
+        # file browser alone still gives a way to start something.
+        terminal = next((name for name in ('xterm', 'x-terminal-emulator') if shutil.which(name)), None)
+        if not terminal:
+            print('No terminal for the recovery session (install xterm)', file=sys.stderr)
         home = 'Z:' + str(Path.home()).replace('/', '\\')
         fallback = self.spawn([self.wine, 'explorer', home], 'fallback', env)
-        terminal = self.spawn(['xterm', '-title', 'XP shell recovery'], 'recovery-terminal', env)
+        terminal = self.spawn([terminal, '-title', 'XP shell recovery'], 'recovery-terminal', env) if terminal else None
         while not self.stopping:
             if wm and wm.poll() is not None:
                 raise RuntimeError('WM exited during fallback')
-            if fallback.poll() is not None and terminal.poll() is not None:
+            if fallback.poll() is not None and (not terminal or terminal.poll() is not None):
                 break
             self.wait((wm, fallback, terminal))
 

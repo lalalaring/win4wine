@@ -81,7 +81,7 @@ def check_offline(base):
     os.environ.pop('LC_ALL', None)
     os.environ.pop('LC_MESSAGES', None)
     menu = linux_apps.Menu.__new__(linux_apps.Menu)
-    menu.japanese = True
+    menu.language = 'ja'
     wanted = menu.wanted()
     links = {k: v['link'] for k, v in wanted.items()}
     terminal = 'x-terminal-emulator' if linux_apps.shutil.which('x-terminal-emulator') else 'xterm'
@@ -95,6 +95,15 @@ def check_offline(base):
         'launch.desktop': 'アクセサリ\\Launch (Linux).lnk',
     }
     assert links == expected, links
+    # Simplified Chinese XP's own Start menu folder names.
+    menu.language = 'zh'
+    chinese = {k: v['link'] for k, v in menu.wanted().items()}
+    assert chinese['top.desktop'] == '附件\\系统工具\\Top (Linux).lnk', chinese
+    assert chinese['kde-sub.desktop'] == '游戏\\Sub (Linux).lnk', chinese
+    assert chinese['browser.desktop'] == '通讯\\Browser (Linux).lnk', chinese
+    assert chinese['editor.desktop'] == '附件\\エディター (Linux).lnk', chinese
+    menu.language = 'ja'
+    assert {k: v['link'] for k, v in menu.wanted().items()} == links
     assert wanted['editor.desktop']['arguments'] == 'true', wanted['editor.desktop']
     assert wanted['editor.desktop']['description'] == 'Edit text'
     assert wanted['browser.desktop']['arguments'] == 'true --name=Browser', wanted['browser.desktop']
