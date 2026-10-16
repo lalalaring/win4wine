@@ -12,7 +12,8 @@
 </p>
 <p align="center">
   <strong>日本語</strong> ·
-  <a href=".github/readme/README.en.md">English</a>
+  <a href=".github/readme/README.en.md">English</a> ·
+  <a href=".github/readme/README.zh.md">简体中文</a>
 </p>
 
 > [!IMPORTANT]
@@ -42,6 +43,14 @@ XP の ISO が無い方は、XP のシェルの代わりに **[ReactOS](https://
   ロケール、コマンド プロンプトの字体、ようこそ画面をその XP に合わせます（英語版では日本語入力と中国語入力を設定しません）。
 - **Windows のアプリ**: WoW64 の Wine 11.0 で、32bit と 64bit のアプリが動きます。端末で `wine setup.exe` と打つと、
   インストーラーが作るショートカットは XP のスタートメニューに入ります。
+- **XP のシェルに足りない部品**: デスクトップの右クリック → プロパティが本物の「画面のプロパティ」を開きます（テーマ、
+  スタート メニュー、DPI、フォント スムージング）。スタート メニューの「アクセサリ」に、タスク マネージャー、メモ帳、
+  コマンド プロンプト、レジストリ エディタ、コントロール パネル、Wine の構成を置きます。Wine 自身のウィンドウで日本語や
+  中国語が豆腐にならないよう、足りないフォント ファミリを prefix の DroidSansFallback に向けます。
+- **Proton の Direct3D レイヤー**: Proton の DXVK（Direct3D 9/10/11）と VKD3D-Proton（Direct3D 12）をこの Wine の
+  prefix に入れれば、ゲームは Vulkan で動きます。`.exe` をダブルクリックすると、Windows のシェルの中でも、
+  （MIME ハンドラーのおかげで）Linux 側のファイル マネージャーでも、このレイヤーを通ります（Vulkan 対応で
+  ビルドした Wine が必要です）。
 - **XP のようこそ画面**: LightDM の greeter として、XP のようこそ画面とログオフの画面を出せます（任意）。
 - **XP のキー操作**: Windows キー、Ctrl+Esc、Win+R、Win+E が使えます。
 - **画面の拡大（DPI）**: XP と同じ「DPI 設定」で、文字や部品を大きくできます（96・120・144 など）。

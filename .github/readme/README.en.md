@@ -12,7 +12,8 @@
 </p>
 <p align="center">
   <a href="../../README.md">日本語</a> ·
-  <strong>English</strong>
+  <strong>English</strong> ·
+  <a href="README.zh.md">简体中文</a>
 </p>
 
 > [!IMPORTANT]
@@ -69,6 +70,13 @@ ReactOS is free software, so the setup script downloads it from its official rel
   screen follow that XP (no Japanese or Chinese input is set up for English XP).
 - **Windows applications**: a WoW64 Wine 11.0 runs 32-bit and 64-bit programs. Run `wine setup.exe` in a terminal and
   the installer's shortcuts land in XP's Start menu.
+- **The parts XP's shell is missing**: right-clicking the desktop → Properties opens a real Display Properties window
+  (theme, Start menu, DPI, font smoothing), and the Start menu's Accessories folder holds Task Manager, Notepad,
+  Command Prompt, Registry Editor, Control Panel and Wine Configuration. Chinese and Japanese text in Wine's own
+  windows no longer comes out as boxes: the families the prefix lacks point at its DroidSansFallback.
+- **Proton's Direct3D layers**: DXVK (Direct3D 9/10/11) and VKD3D-Proton (Direct3D 12) from a Proton build can be put
+  into a prefix of this Wine, and games then run on Vulkan. Double-clicking a `.exe` goes through those layers, both in
+  the Windows shell and, through a MIME handler, in the Linux file manager (the Wine has to be built with Vulkan).
 - **XP Welcome screen**: an optional LightDM greeter that shows XP's Welcome and log-off screens.
 - **XP's keys**: the Windows key, Ctrl+Esc, Win+R and Win+E.
 - **Recovery**: if the XP shell keeps crashing, the session falls back to Wine's own explorer and an xterm.
