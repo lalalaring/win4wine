@@ -23,7 +23,7 @@
 
 ## Install
 
-1. Get a Windows XP Professional SP3 (x86) ISO (Japanese or English) **yourself**.
+1. Get a Windows XP Professional SP3 (x86) ISO (Japanese, Simplified Chinese or English) **yourself**.
 2. On a freshly installed Debian 13, run as the user who will log in:
 
 ```sh
@@ -61,9 +61,12 @@ ReactOS is free software, so the setup script downloads it from its official rel
 - **Linux applications**: Linux windows get XP's frames; the taskbar, Alt+Tab, minimize and maximize work as on XP.
   Linux applications are listed under All Programs.
 - **Notification area**: Linux tray icons (StatusNotifierItem and XEmbed) show up in XP's notification area.
-- **Japanese input**: fcitx5 + Mozc, toggled with Ctrl+Space (or Zenkaku/Hankaku), in GTK, Qt and Wine applications.
-- **Japanese or English XP**: either ISO works. The language is detected from the ISO, and the fonts (Tahoma and others on
-  English XP), the locale and the Welcome screen follow that XP (no Japanese input is set up for English XP).
+- **Japanese and Chinese input**: fcitx5, with Mozc for Japanese and Pinyin on Simplified Chinese XP, toggled with
+  Ctrl+Space (or Zenkaku/Hankaku on Japanese XP), in GTK, Qt and Wine applications. The session puts the input method into
+  fcitx5's profile, so it works from the first login.
+- **Japanese, Simplified Chinese or English XP**: any of the three ISOs works. The language is detected from the ISO, and the
+  fonts (Tahoma and others on English XP, 宋体/SimSun on Simplified Chinese XP), the locale, the console's font and the Welcome
+  screen follow that XP (no Japanese or Chinese input is set up for English XP).
 - **Windows applications**: a WoW64 Wine 11.0 runs 32-bit and 64-bit programs. Run `wine setup.exe` in a terminal and
   the installer's shortcuts land in XP's Start menu.
 - **XP Welcome screen**: an optional LightDM greeter that shows XP's Welcome and log-off screens.
@@ -73,8 +76,8 @@ ReactOS is free software, so the setup script downloads it from its official rel
   with a scale per monitor and scales such as 125% or 150%; the XP shell stays crisp, and Wayland applications get XP's
   frames too. It is new, tested less than the X11 session and has known limits ([docs/wayland.md](../../docs/wayland.md),
   Japanese). The X11 session is the one to try first.
-- **ReactOS shell (optional)**: the session with ReactOS 0.4.16's explorer instead of XP's, in Japanese or English; it can be set
-  up beside the XP shell.
+- **ReactOS shell (optional)**: the session with ReactOS 0.4.16's explorer instead of XP's, in Japanese, Simplified Chinese or
+  English; it can be set up beside the XP shell.
 
 <table>
   <tr>
@@ -98,6 +101,11 @@ ReactOS is free software, so the setup script downloads it from its official rel
 > - This is an unofficial project, not affiliated with Microsoft or the Wine project.
 > - Only the Japanese and the English XP SP3 (x86) have been tested. XP in other languages is set up the same way as English XP
 >   and might work, but it has not been tested at all (`setup.sh` warns and goes on).
+> - **The Simplified Chinese XP support is new and has not been checked against a Chinese ISO yet.** The language detection,
+>   the fonts (宋体/SimSun), the locale (`zh_CN.UTF-8`), the console's font (新宋体, 8×16 cells) and Chinese input (fcitx5 +
+>   Pinyin) are in place, but some of their values are XP's documented defaults rather than measurements taken on a Chinese
+>   reference machine (see [the installation guide](INSTALL.en.md#simplified-chinese-xp)). Traditional Chinese XP (0x0404) is
+>   set up as English XP (its fonts and console font differ, so it does not work as it is).
 
 ## How it works
 
@@ -108,7 +116,7 @@ LightDM ─ XP Welcome greeter (greeter/)
         │    └─ XP's explorer.exe, shell32.dll, … (extracted from the ISO)
         ├─ bridge-wm: an X11 WM + Win32 proxy windows (bridge-wm/)
         │    (Wayland session: a patched labwc instead of the WM, wayland/)
-        └─ fcitx5 + Mozc, tray bridge (bridge-wm/tray.py)
+        └─ fcitx5 (Mozc for Japanese, Pinyin for Simplified Chinese), tray bridge (bridge-wm/tray.py)
 ```
 
 The design documents are in Japanese; [docs/README.md](../../docs/README.md) lists them.

@@ -9,7 +9,7 @@ win4wine がどの部品でできていて、どうつながっているかの�
  └─ session/supervisor.py ……………… セッションの起動と見張り
       ├─ bridge-wm/wm.py ……………… X11 のウィンドウマネージャー（WM）
       ├─ bridge-wm/tray.py …………… Linux のトレイアイコンの仲介
-      ├─ fcitx5 …………………………… 日本語入力
+      ├─ fcitx5 …………………………… 日本語・中国語入力
       ├─ proxy.exe（Wine の上）……… Linux のウィンドウの代理と、XP の枠
       └─ xp-explorer.exe（Wine の上）… XP のシェル（ISO から取り出した explorer.exe）
                     ↑ ↓  IPC ディレクトリのファイル（WM ⇄ proxy ⇄ tray.py）
@@ -19,9 +19,9 @@ win4wine がどの部品でできていて、どうつながっているかの�
 
 | 部品 | 役割 |
 |---|---|
-| `extract/extract.py` | ISO（または XP の Windows ディレクトリ）から、必要なファイルだけを `.local/assets` に取り出します。ネットワークは使いません。XP の言語（日本語か英語）は `extract/media.py` が shell32.dll のリソースの言語から判断し、英語版では英語版にだけある字体も取り出します。ほかの言語の XP は英語版として扱います（試していません）。 |
+| `extract/extract.py` | ISO（または XP の Windows ディレクトリ）から、必要なファイルだけを `.local/assets` に取り出します。ネットワークは使いません。XP の言語（日本語・簡体字中国語・英語）は `extract/media.py` が shell32.dll のリソースの言語から判断し、日本語版では日本語版にだけある字体を、簡体字中国語版では宋体（simsun.ttc）とコンソールのラスタ フォント（vga936.fon）を、英語版では英語版にだけある字体も取り出します。ほかの言語の XP は英語版として扱います（繁体字中国語版も含めて試していません）。 |
 | `wine/build.sh` | Wine 11.0 を取得し、`wine/patches/` を当ててビルドします（[patches.md](patches.md)）。 |
-| `prefix/create.py`、`prefix/stage.py` | XP 用の Wine の prefix を作り、XP の DLL と COM の登録、レジストリの設定（registry profile）を入れます。設定は XP の言語に合わせます（日本語版は MS UI Gothic の字体の profile とコンソールの MS ゴシック、英語版はクラシックの Tahoma、MS Shell Dlg の Microsoft Sans Serif、コンソールの Terminal）。言語は `xp-shell.json` の `language` に記録します。 |
+| `prefix/create.py`、`prefix/stage.py` | XP 用の Wine の prefix を作り、XP の DLL と COM の登録、レジストリの設定（registry profile）を入れます。設定は XP の言語に合わせます（日本語版は MS UI Gothic の字体の profile とコンソールの MS ゴシック、簡体字中国語版は宋体のクラシックの字体とコンソールの新宋体 8×16、英語版はクラシックの Tahoma、MS Shell Dlg の Microsoft Sans Serif、コンソールの Terminal）。言語は `xp-shell.json` の `language` に記録します。 |
 | `bridge-wm/build.sh` | proxy.exe などの Win32 の補助プログラムをビルドします（`.local/bridge`）。 |
 
 ## XP のシェルの動かし方
@@ -151,11 +151,14 @@ Wine の上で動く Win32 のプロセスです。Linux の窓 1 つごとに�
 
 - 起動の順: XP のログオン画面 → WM → tray.py → fcitx5 → prefix の更新（`prefix/stage.py`）→ Linux のアプリのスタートメニュー
   → proxy → XP のシェル。
+- 入力メソッド（`session/input_method.py`）: `input_method` があるとき、fcitx5 を起動する前に、prefix の言語の入力法
+  （日本語版は Mozc、簡体字中国語版は Pinyin）を fcitx5 の設定（`~/.config/fcitx5/profile`）に入れます。すでにある入力法はそのまま残し、
+  足りないときだけ足します（fcitx5 は自分では入力法を足さないので、無いと Ctrl+Space が効きません）。
 - タスクバーが出たら起動できたとみなします。XP のシェルや proxy が落ちたら、Wine を止めてやり直します。
   120 秒に 3 回失敗すると、XP の DLL を使わない別の prefix で、Wine 標準の explorer と xterm を起動します（復旧用）。
 - XP のログオフ・終了（パッチ 0018 が要求をファイルに書きます）では、ログオフの画面を出し、セッションを終えます。
   終了・再起動では `session.json` の `shutdown_command`・`reboot_command` を実行します。
-- 環境: Wine と Linux のアプリの `PATH` の先頭にセッションの Wine を置きます。日本語入力の変数（`XMODIFIERS` など）、
+- 環境: Wine と Linux のアプリの `PATH` の先頭にセッションの Wine を置きます。入力メソッドの変数（`XMODIFIERS` など）、
   字体の設定（`linux_font` の fontconfig）、DPI の設定（下の「DPI」）、カーソルのテーマも入れます。
 - 周期的には起きません（起動中のタスクバーを待つ間だけ 1 秒ごとに確かめます）。ログは `~/.local/state/win4wine/` に書き、
   起動のたびに前回の分を `*.log.1` にします。
@@ -190,7 +193,7 @@ Wine の上で動く Win32 のプロセスです。Linux の窓 1 つごとに�
 - XP の「画面のフォントの縁を滑らかにする」の「標準」と「ClearType」を、prefix の `HKCU\Control Panel\Desktop` の
   `FontSmoothing` と `FontSmoothingType`（1 か 2）で決めます（`prefix/display.py --font-smoothing`）。既定は XP と同じく「標準」です。
 - ClearType では、XP のシェルと Wine のアプリの文字をパッチ 0077 が XP と同じ方式で描きます。
-  MS UI Gothic などの埋め込みビットマップのある大きさ（22 ピクセルまで）は、XP と同じく ClearType になりません。
+  MS UI Gothic や宋体などの埋め込みビットマップのある大きさ（MS UI Gothic は 22 ピクセルまで）は、XP と同じく ClearType になりません。
 - supervisor は Linux のアプリにも RGB のサブピクセルで描くように伝えます（`session/dpi.py`。`Xft.rgba`、fontconfig の `rgba`）。
   Wayland のアプリ（GTK など）は自分の設定（GNOME の `font-rgba-order` など）に従います。
 - ようこそ画面は変わりません。

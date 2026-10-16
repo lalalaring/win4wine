@@ -5,7 +5,7 @@ XP の ISO が無くても試せるように、[ReactOS](https://reactos.org/) �
 XP のシェルと同じ Wine、同じ bridge（ウィンドウマネージャー、代理ウィンドウ、トレイ）、同じ supervisor で動きます。
 
 ```sh
-scripts/setup.sh --shell reactos --lang ja    # 英語なら --lang en
+scripts/setup.sh --shell reactos --lang ja    # 中国語（簡体字）なら --lang zh、英語なら --lang en
 ```
 
 ログイン画面でセッション「**ReactOS Shell (Wine, X11)**」を選びます。XP のシェルも入れてあれば、両方のセッションが並びます。
@@ -45,10 +45,12 @@ GPL と LGPL に従い、対応するソース（`manifest.json` の `source`、
 - ReactOS の explorer は、`HKLM\...\Winlogon` の `Shell` に自分のファイル名があるときだけシェルになります。`ros-explorer.exe` にします。
 - COM の登録などは、ReactOS の shell32、browseui、shdocvw 自身の `DllRegisterServer` に書かせます（32bit の view）。
 - フォルダの「開く」と「エクスプローラ」は ros-explorer.exe で開きます（ReactOS の hivecls.inf と同じ形）。
-- 日本語では、Tahoma などの UI のフォントに DroidSansFallback を FontLink でつなぎます。Wine はロケールの違う起動で
+- 日本語と中国語（簡体字）では、Tahoma などの UI のフォントに DroidSansFallback を FontLink でつなぎます。Wine はロケールの違う起動で
   FontLink を作り直すので、prefix はそのロケールで作り、セッションの前の `stage` で入れ直します。
-  FontLink の届かない所（フォルダの窓のアドレス欄など）と Linux のアプリのために、`setup.sh` は日本語のとき `fonts-noto-cjk` も入れます。
-- 日本語では、スタートメニューの「スタートアップ」と「管理ツール」のフォルダを ReactOS と同じ日本語の名前にします（Wine は英語の名前で作ります）。
+  FontLink の届かない所（フォルダの窓のアドレス欄など）と Linux のアプリのために、`setup.sh` は日本語と中国語のとき `fonts-noto-cjk` も入れます
+  （ReactOS のシェルには XP の字体が無いので、Linux のアプリの字体は `session/supervisor.py` が Noto Sans CJK JP / SC にします）。
+- 日本語と中国語（簡体字）では、スタートメニューの「スタートアップ」と「管理ツール」のフォルダを、ReactOS と同じその言語の名前にします
+  （日本語は「スタートアップ」「管理ツール」、中国語は「启动」「管理工具」。Wine は英語の名前で作ります）。
   Wine は User Shell Folders の場所を使うので、名前を変えたフォルダをそのまま使います。
 - 見た目（作るときだけ）: テーマを切り（クラシック）、ReactOS の既定の配色（`win32ss/gdi/ntgdi/stockobj.c`）と寸法と
   フォント（`boot/bootdata/hivedef.inf`）、壁紙 Nebula（塗りつぶし）、スタートメニューの「ログオフ」。
