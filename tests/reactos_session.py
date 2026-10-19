@@ -24,6 +24,10 @@ if config.get('shell') != 'reactos':
 prefix = Path(config['prefix']).resolve(strict=True)
 state = Path(config.get('state', str(Path.home() / '.local/state/win4wine')))
 env = dict(os.environ, WINEPREFIX=str(prefix), WINEDEBUG='-all', WIN4WINE_EXTERNAL_SHELL='1',
+           # The patches decide by win4wine_shell(), so the programs started
+           # here have to say which shell they run under, as the session does;
+           # without it explorer.exe opens Wine's own folder window.
+           WIN4WINE_SHELL='reactos',
            WIN4WINE_FOLDER_SHELL=r'C:\ros\ros-explorer.exe',
            WIN4WINE_SESSION_REQUEST='Z:' + str((state / 'session-request').resolve()).replace('/', '\\'))
 env.pop('WINEARCH', None)
