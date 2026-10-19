@@ -2,7 +2,7 @@
 
 [日本語](README.md) · **简体中文**
 
-`docs/` 里的设计文档原文是日文。这一页是它们的中文摘要：每篇文档的要点、关键文件与结论，方便快速定位；
+`docs/` 里的设计文档原文是日文（上游新加了 Windows 7 外壳，见下面的 [windows7.md](windows7.md) 一节）。这一页是它们的中文摘要：每篇文档的要点、关键文件与结论，方便快速定位；
 细节（测量值、表格、补丁逐条说明）仍然以原文为准，链接在每节标题上。
 
 只想把系统装起来用的话，看仓库的 [README（中文）](../.github/readme/README.zh.md) 和
@@ -81,12 +81,12 @@ proxy → XP 外壳。启动 fcitx5 之前先把输入法写进它的配置（�
 登录中/注销中的 XP 画面由 `greeter/xp-splash.py` 在会话内显示；XP 光标由 `greeter/cursors.py` 从 user32.dll 生成
 X 光标主题 `win4wine-xp`。
 
-**DPI**：与 XP 一样由 prefix 的 `HKCU\Control Panel\Desktop\LogPixels` 决定（`prefix/display.py --dpi`），补丁 0044 让外壳
+**DPI**：与 XP 一样由 prefix 的 `HKCU\Control Panel\Desktop\LogPixels` 决定（`prefix/display.py --dpi`），补丁 0051 让外壳
 成为 system DPI aware；supervisor 把同一个值交给 Linux 应用（`session/dpi.py`：`Xft.dpi`、fontconfig dpi、
 `XCURSOR_SIZE`，192 以上再加 GTK 的 `GDK_SCALE`）；欢迎屏幕的 DPI 在 `/etc/win4wine/greeter.json`。
 
 **字体平滑（ClearType）**：`HKCU\Control Panel\Desktop` 的 `FontSmoothing` 与 `FontSmoothingType`（1/2）决定，
-默认与 XP 一样是「标准」；ClearType 时补丁 0077 按 XP 的方式绘制文字（带嵌入点阵的字号保持黑白，如 MS UI Gothic ≤22 像素），
+默认与 XP 一样是「标准」；ClearType 时补丁 0052 按 XP 的方式绘制文字（带嵌入点阵的字号保持黑白，如 MS UI Gothic ≤22 像素），
 Linux 应用也走 RGB 子像素（`Xft.rgba`）。
 
 **Wayland 会话（`wayland/`）**：`wayland/session.sh` 建 IPC 目录并启动打过补丁的 labwc（用 `-S` 在其中运行 supervisor），
@@ -115,7 +115,7 @@ XP 任务栏把 Linux 窗口当 Win32 窗口，所以 proxy 为每个窗口准�
 **中日文输入**：用 fcitx5（日文 Mozc、简体中文版拼音），与 Wine 走 XIM、与 GTK/Qt 走各自的输入模块；启动与环境变量由
 supervisor 管理，不用 im-config（避免影响其他会话）；输入法本身由 supervisor 写进 fcitx5 配置（fcitx5 自己不会加输入法）；
 输入模式显示在 XP 通知区域；候选文字按 XP IME 的方式显示在输入框内（XIM 的 on-the-spot，`UseOnTheSpot=True`，
-补丁 0069 让候选窗口标在插入符下方）。
+补丁 补丁 0029 让候选窗口标在插入符下方）。
 
 **登录界面**：自己用 Python + GTK3 + cairo + Pango 画；不运行 XP 的 logonui.exe/msgina.dll，只读资源——因为在处理密码的地方
 不跑微软的代码；文字按 GDI 的排版方式绘制，布局对齐真机 XP 上量到的数值。
@@ -132,24 +132,27 @@ XP 外壳与 Wine 保持为 Xwayland 客户端（XP 的 Explorer 自己决定窗
 所以与它有关的数值（经典主题宋体 9 点、控制台新宋体 8×16、欢迎屏幕布局）来自 XP 的默认值与日文版的实测，没有真机测量；
 只把尺寸、颜色、规则等数值放进仓库，不放 XP 的像素；测试在 `tests/`，同一个探针在真机 XP 和 Wine 上都跑一遍再比较。
 
-## [patches.md](patches.md) — Wine 的 77 个补丁
+## [patches.md](patches.md) — Wine 的 126 个补丁
 
-`wine/patches/` 里是 77 个补丁，按顺序打在未改动的 Wine 11.0 上（版本见 `wine/upstream.env`），由 `wine/build.sh` 调用
+`wine/patches/` 里是 126 个补丁，按顺序打在未改动的 Wine 11.0 上（版本见 `wine/upstream.env`），由 `wine/build.sh` 调用
 `wine/patch-state.py` 应用（也能给只打了一部分的源码补上缺的部分）。
 
 **opt-in**：给 XP 外壳的改动只在设置了 `WIN4WINE_EXTERNAL_SHELL` 的进程里生效（会话与 prefix 辅助工具会设置它），
-所以同一个 Wine 跑普通 Windows 程序时行为不变。判断集中在补丁 0013 加入的 `include/wine/win4wine.h` 的 `win4wine_external_shell()`。
-不需要 opt-in 的只有：文档化行为的修正（0001〜0012、0064、0076）与不影响普通应用的 0019、0020；0018 需要
-`WIN4WINE_SESSION_REQUEST`；0063 需要 `WIN4WINE_FOLDER_SHELL`（只有 ReactOS 会话设置）；ReactOS 会话还会设
-`WIN4WINE_SHELL=reactos`，0047 在那时不做 XP 部件的替换。
+所以同一个 Wine 跑普通 Windows 程序时行为不变。判断集中在补丁 0013 加入的 `include/wine/win4wine.h` 的 `win4wine_shell()`。
+只有文档化行为的修正等少数补丁不需要 opt-in（逐条的列表见原文的 opt-in 栏）。另外还有两个更细的开关：
+`WIN4WINE_SESSION_REQUEST`（注销/关机请求）与 `WIN4WINE_FOLDER_SHELL`（只有 ReactOS 会话设置）；
+外壳的种类由 `WIN4WINE_SHELL` 区分（`reactos`、`win7`，不设就是 XP），补丁 0013 的 `win4wine_shell()` 统一判断。
 
-**分组**：0001〜0008 Wine 通用修正；0009〜0012 XP 部件调用的 API；0013〜0018 外部外壳的基础；0019〜0029 与 bridge
-（WM/proxy）协作及 X11 显示；0030〜0035 窗口布局、UI 状态、菜单、WM_PRINT、壁纸；0036〜0044 文字与 GDI 像素；
-0045〜0048 控件；0049〜0061 uxtheme；0062 Wayland 会话；0063〜0066 ReactOS 外壳；0067〜0077 后续修正。
+**分组**：0001〜0008 Wine 通用修正；0009〜0012 XP 部件调用的 API；0013〜0018 外部外壳的基础；0019〜0035 与 bridge
+（WM/proxy）协作、X11 显示与中文/日文输入；0036〜0042 窗口布局、UI 状态、菜单、WM_PRINT、壁纸；0043〜0053 文字与
+GDI 像素；0054〜0057 控件；0058〜0073 uxtheme；0074 Wayland 会话；0075〜0078 ReactOS 外壳；0079〜0097 Windows 7
+外壳调用的 API 与 Wine 修正；0098〜0104 Vista/7 主题（版本 4 样式）；0105〜0112 Windows 7 外壳的会话；0113〜0120
+Windows 7 的外观；0121〜0126 XP 与 ReactOS 外壳的细节。
 文档还写了排列顺序的思路、补丁的书写格式、以及新增补丁的步骤；旧编号对照见 `history/patch-history.md`。
 
-与本仓库中文/日文支持相关的几个：**0037**（CJK 折行与文本测量，代码页从 932 推广到 932 与 936）、**0042**（控制台双字节
-字符占两个单元格）、**0056/0057**（uxtheme 的日文/本地化 Luna 字体 profile，从用户自己的 msstyles 取字体）、**0077**（ClearType）。
+与本仓库中文/日文支持相关的几个（新编号）：**0044**（CJK 折行与文本测量，代码页从 932 推广到 932 与 936）、**0049**
+（控制台双字节字符占两个单元格）、**0065/0066**（uxtheme 的日文字体 profile 与本地化主题值，从用户自己的 msstyles 取字体）、
+**0052**（ClearType）。
 
 ## [development.md](development.md) — 开发
 
@@ -208,7 +211,7 @@ scripts/setup.sh --shell reactos --lang zh    # 日文用 --lang ja，英文用 
 Nebula 壁纸、隐藏 Wine 命名空间里的 Internet 与「/」、不显示「帮助和支持」。
 
 **会话**：`reactos-session.json` 里 `"shell": "reactos"`，supervisor 启动 `C:\ros\ros-explorer.exe`（不显示 XP 欢迎屏幕）、
-设置 `WIN4WINE_FOLDER_SHELL`（补丁 0063 让 Wine 的 explorer 把控制面板/搜索/Win+E 之类的启动转给 ReactOS 的 shell）
+设置 `WIN4WINE_FOLDER_SHELL`（补丁 0075 让 Wine 的 explorer 把控制面板/搜索/Win+E 之类的启动转给 ReactOS 的 shell）
 与 `WIN4WINE_SWITCHER=reactos`（Alt+Tab 用 ReactOS 的样式绘制）。bridge 与面向 XP 的补丁在这里同样有效。
 
 **可选**：ReactOS 的 `lautus`/`lunar`/`mizu` 主题（`--theme`），以及 ReactOS 的登录界面
@@ -278,11 +281,31 @@ XP 外壳与 ReactOS 外壳、X11 与 Wayland 会话都能用，对 Wine 窗口�
 | 拖动已吸附窗口的标题栏 | 回到吸附前的大小并继续拖动 |
 | 拖动已最大化窗口的标题栏 | 稍一移动就还原并继续拖动（XP 里最大化的窗口不能拖动） |
 
-**机制**：proxy 用 `RegisterHotKey` 接 Win+方向键；X11 下标题栏拖动由 Wine 的移动循环完成（补丁 0073 让它发
+**机制**：proxy 用 `RegisterHotKey` 接 Win+方向键；X11 下标题栏拖动由 Wine 的移动循环完成（补丁 0032 让它发
 `EVENT_SYSTEM_MOVESIZESTART/END`），proxy 据此画去向框并在松手时吸附，剥离吸附与还原最大化也要在 Wine 的循环里做；
 Wayland 下交给 labwc 自己的 snapping，proxy 只把 Win+方向键转给它，并通过 `tiled.tsv`/`snapping.tsv` 了解状态。
 
 **限制**：属试作；"移到相邻显示器"只在一台显示器的环境验证过；改变已吸附窗口的大小会取消吸附（与 Windows 7 相同）。
+
+## [windows7.md](windows7.md) — Windows 7 外壳（试验中）
+
+上游新加的第三个外壳：用 **Windows 7 SP1 x64** 的 `explorer.exe` 与周边 DLL 代替 XP 的，外观是 Windows 7 的
+Basic 主题（还没有 Aero 玻璃效果）。开始菜单、任务栏、通知区域、文件夹窗口都能用，Linux 应用在任务栏上按程序分组；
+只验证过日文版的 Windows 7。与 XP / ReactOS 的外壳并列，各有自己的会话（「Windows 7 Shell (Wine, X11)」）。
+
+要点（细节见原文）：
+
+- **从 Windows 7 的 ISO 取文件**：外壳的 `explorer.exe`、它调用的 DLL（`shell32`、`comctl32` 等）、字体、
+  光标与登录画面所需的资源；取的清单在 `extract/manifests.py`，判断语言与版本在 `extract/win7.py`。
+- **注册表**：不从真机整份迁移，而是从 WinSxS 里的组件清单（manifest）生成需要的注册项。
+- **prefix（`prefix/win7.py`）**：与 XP / ReactOS 一样是 WoW64 的 prefix，`syswow64` 放 Windows 7 的 DLL，
+  只给该用它们的程序用（哪些程序用哪些 DLL 在原文「どのプログラムが Windows 7 の DLL を使うか」一节）。
+- **光标与登录画面**：从 Windows 7 的 `user32.dll` 生成 X 光标主题；`greeter/w7logon.py` 绘制 Windows 7 的登录画面。
+- **会话**：`--shell win7 --media <Windows 7 的 ISO>`，会话名「Windows 7 Shell (Wine, X11)」；
+  语言取媒体本身的（`--lang` 只对 ReactOS 外壳有效）。
+- **补丁**：Windows 7 相关的补丁占 0079〜0120（外壳调用的 API、Vista/7 主题的版本 4 样式、会话与外观），
+  这些只在 `WIN4WINE_EXTERNAL_SHELL` 且 `WIN4WINE_SHELL=win7` 时生效。
+- **限制**：仍是试验阶段，只在日文版上验证过；没有 Aero 玻璃；原文「制限」一节列了其余部分。
 
 ## 记录（history/）
 

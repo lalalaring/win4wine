@@ -43,6 +43,14 @@ scripts/setup.sh --shell reactos --lang en   # or --lang ja
 
 and choose the session "ReactOS Shell (Wine, X11)" at the login screen.
 
+With a Windows 7 SP1 x64 ISO, the Windows 7 shell (experimental) can be set up the same way:
+
+```sh
+scripts/setup.sh --shell win7 --media /path/to/Windows7SP1x64.iso
+```
+
+and choose the session "Windows 7 Shell (Wine, X11)".
+
 Details: 🔗 [installation guide (INSTALL.en.md)](INSTALL.en.md). Building Wine takes about 90 minutes on 4 cores.
 The theme (XP's classic one, for example) and the text size can be changed later ([Changing the look and the text size](INSTALL.en.md#changing-the-look-and-the-text-size)).
 
@@ -55,6 +63,9 @@ No Microsoft files are included. Only the files that are needed are extracted lo
 
 Without an XP ISO, the session can run **[ReactOS](https://reactos.org/)'s shell** instead (a Windows 2000-like classic look).
 ReactOS is free software, so the setup script downloads it from its official release ([docs/reactos.md](../../docs/reactos.md), Japanese).
+
+With a Windows 7 ISO, it can also run **Windows 7's shell** (the Windows 7 Basic look). It is an experimental prototype
+([docs/windows7.md](../../docs/windows7.md), Japanese).
 
 ## What it does
 
@@ -80,12 +91,15 @@ ReactOS is free software, so the setup script downloads it from its official rel
 - **XP Welcome screen**: an optional LightDM greeter that shows XP's Welcome and log-off screens.
 - **XP's keys**: the Windows key, Ctrl+Esc, Win+R and Win+E.
 - **Recovery**: if the XP shell keeps crashing, the session falls back to Wine's own explorer and an xterm.
-- **Wayland session (optional, even more experimental than the X11 session)**: a patched labwc instead of the X11 WM,
-  with a scale per monitor and scales such as 125% or 150%; the XP shell stays crisp, and Wayland applications get XP's
-  frames too. It is new, tested less than the X11 session and has known limits ([docs/wayland.md](../../docs/wayland.md),
+- **Wayland session (optional, even more experimental than the X11 session)**: a patched labwc instead of the X11 WM
+  (XP, ReactOS and Windows 7 shells), with a scale per monitor and scales such as 125% or 150%; the shell stays crisp,
+  and Wayland applications get the shell's frames too. It is new, tested less than the X11 session and has known limits ([docs/wayland.md](../../docs/wayland.md),
   Japanese). The X11 session is the one to try first.
 - **ReactOS shell (optional)**: the session with ReactOS 0.4.16's explorer instead of XP's, in Japanese, Simplified Chinese or
   English; it can be set up beside the XP shell.
+- **Windows 7 shell (optional, experimental)**: the session with Windows 7 SP1 x64's explorer (the Windows 7 Basic look; no Aero
+  glass yet). The Start menu, taskbar, notification area and folder windows work, and Linux applications are grouped per
+  application on the taskbar. Only Japanese Windows 7 has been tested.
 
 <table>
   <tr>
@@ -103,7 +117,7 @@ ReactOS is free software, so the setup script downloads it from its official rel
 ## Caution
 
 > [!WARNING]
-> - **Obtain the Windows XP ISO yourself.** Neither this repository nor its scripts download any Microsoft files.
+> - **Obtain the Windows XP (and Windows 7) ISO yourself.** Neither this repository nor its scripts download any Microsoft files.
 >   Follow Microsoft's license terms for the ISO and the files extracted from it.
 > - **Use at your own risk.** The author is not responsible for data loss or any other problems.
 > - This is an unofficial project, not affiliated with Microsoft or the Wine project.
@@ -120,8 +134,8 @@ ReactOS is free software, so the setup script downloads it from its official rel
 ```text
 LightDM ─ XP Welcome greeter (greeter/)
    └─ XP Shell session (session/supervisor.py)
-        ├─ Wine 11.0 + 77 patches (wine/patches/)
-        │    └─ XP's explorer.exe, shell32.dll, … (extracted from the ISO)
+        ├─ Wine 11.0 + 126 patches (wine/patches/)
+        │    └─ XP's explorer.exe, shell32.dll, … (extracted from the ISO; ReactOS's or Windows 7's in their sessions)
         ├─ bridge-wm: an X11 WM + Win32 proxy windows (bridge-wm/)
         │    (Wayland session: a patched labwc instead of the WM, wayland/)
         └─ fcitx5 (Mozc for Japanese, Pinyin for Simplified Chinese), tray bridge (bridge-wm/tray.py)
@@ -145,5 +159,5 @@ A Chinese summary of all of them is in [docs/README.zh.md](../../docs/README.zh.
 
 [LGPL-2.1-or-later](../../LICENSE), the same as Wine. It covers only the code and patches in this repository,
 except `wayland/patches/labwc/` (GPL-2.0-only, as labwc) and `wayland/patches/wlroots/` (MIT, as wlroots).
-The Windows XP files, and the XP screens in the screenshot, are copyrighted by Microsoft.
+The Windows XP and Windows 7 files, and the XP screens in the screenshot, are copyrighted by Microsoft.
 The ReactOS files that the ReactOS shell uses are under ReactOS's licenses (GPL-2.0-or-later; most of its DLLs LGPL-2.1-or-later).

@@ -91,11 +91,11 @@ scripts/setup.sh --media /path/to/English-XP.iso --greeter
 - 区域是 `zh_CN.UTF-8`（Wine 由此取到 ANSI 代码页 936）。中文输入用 fcitx5 + 拼音，`session.json` 里会写入
   `"input_method": "fcitx5"`。
 - 字体是简体中文版 XP 的宋体（SimSun）9 pt，Luna 和经典主题下都是。Luna 的字体来自你自己 ISO 里的中文
-  `luna.msstyles`（补丁 0057）；经典主题下的字体由 `prefix/registry.py` 写入。Linux 应用拿到的也是宋体。
+  `luna.msstyles`（补丁 0066）；经典主题下的字体由 `prefix/registry.py` 写入。Linux 应用拿到的也是宋体。
 - 命令提示符使用新宋体（NSimSun，在 `simsun.ttc` 里），8×16 个单元格。XP 本身用的是点阵版新宋体，所以也会从 ISO
   取出 `vga936.fon`。
-- 双字节字符的折行与日文版 XP 相同（补丁 0037，现在也覆盖 936），控制台里这样一个字符占两个单元格
-  （补丁 0042，与 932 是同一条代码路径）。
+- 双字节字符的折行与日文版 XP 相同（补丁 0044，现在也覆盖 936），控制台里这样一个字符占两个单元格
+  （补丁 0049，与 932 是同一条代码路径）。
 - 会话会在启动 fcitx5 之前把输入法写进它的配置（`~/.config/fcitx5/profile`）：已有的条目保留，缺的追加。
   用 Ctrl+Space 切换。这需要 `fcitx5-chinese-addons`，`setup.sh` 会装上。
 - 带 `--greeter` 时，如果 logonui 是中文，欢迎屏幕的文字用宋体绘制。

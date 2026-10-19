@@ -28,7 +28,7 @@ scripts/setup.sh --media /path/to/WindowsXPSP3.iso --greeter
 
 | オプション | 意味 |
 |---|---|
-| `--media PATH` | XP の ISO または Windows ディレクトリ（必須） |
+| `--media PATH` | XP の ISO または Windows ディレクトリ（必須）。`--shell win7` では Windows 7 SP1 x64 の ISO |
 | `--greeter` | ログイン画面を XP のようこそ画面にします（LightDM をディスプレイマネージャにします） |
 | `--no-greeter` | 今のログイン画面のままにします（既定）。XP のカーソルだけ入れます |
 | `--theme luna\|classic` | 見た目です。`luna`（既定。XP の「Windows XP」のテーマ、XP 形式のスタートメニュー、壁紙 Bliss）か `classic`（XP の「Windows クラシック」のテーマ、クラシック形式のスタートメニュー、壁紙なし）。ReactOS のシェルでは `classic`（既定）、`lautus`、`lunar`、`mizu` |
@@ -38,6 +38,7 @@ scripts/setup.sh --media /path/to/WindowsXPSP3.iso --greeter
 | `--jobs N` | Wine のビルドの並列数です（既定は CPU の数） |
 | `--no-shadowfb` | 仮想マシンで、X の描き方を変えません（下の「2. スクリプトがすること」の 8） |
 | `--shell reactos` | XP のシェルの代わりに ReactOS のシェルを入れます（`--media` は要りません。下の「ReactOS のシェル」） |
+| `--shell win7` | Windows 7 のシェル（実験的）を入れます。`--media` に Windows 7 の ISO を渡します（下の「Windows 7 のシェル」） |
 | `--lang ja\|zh\|en` | ReactOS のシェルの言語です（既定は今のロケールが日本語なら `ja`、中国語なら `zh`、ほかは `en`）。作った prefix はその言語のままなので、変えるときは `.local/prefix-reactos` を移してから実行します |
 
 途中で失敗しても、そのまま実行し直せば、済んだ段階は飛ばします。ビルドしたものはすべて、このチェックアウトの `.local/` に入ります。
@@ -93,10 +94,10 @@ scripts/setup.sh --media /path/to/English-XP.iso --greeter
 
 - ロケールは `zh_CN.UTF-8` です（Wine はここから ANSI コードページ 936 を決めます）。中国語入力は fcitx5 + Pinyin で、
   `session.json` の `input_method` を `fcitx5` にします。
-- 字体は簡体字中国語版の XP と同じ宋体（SimSun）9 ポイントです。Luna は、利用者の ISO にある中国語版の luna.msstyles の値（0057）を読み、
+- 字体は簡体字中国語版の XP と同じ宋体（SimSun）9 ポイントです。Luna は、利用者の ISO にある中国語版の luna.msstyles の値（0066）を読み、
   クラシックは `prefix/registry.py` が入れます。Linux のアプリの字体も SimSun です。
 - コマンド プロンプトは新宋体（NSimSun、simsun.ttc）の 8×16 升です。XP 自身はラスタ フォントの新宋体を使うので、ISO から vga936.fon も取り出します。
-- 2 バイト文字を含む行の折り返しは、日本語版と同じ仕組み（0037。936 も対象）で行います。コンソールの 2 升の扱いも同じです（0042）。
+- 2 バイト文字を含む行の折り返しは、日本語版と同じ仕組み（0044。936 も対象）で行います。コンソールの 2 升の扱いも同じです（0049）。
 - 入力法はセッションが fcitx5 の設定（`~/.config/fcitx5/profile`）に入れます。すでにある入力法はそのまま残し、足りないときだけ足します。
   Ctrl+Space で切り替えます（`fcitx5-chinese-addons` が必要です。`setup.sh` が入れます）。
 - `--greeter` のときは、logonui の言語が中国語なら宋体で描きます。
@@ -130,6 +131,24 @@ scripts/setup.sh --shell reactos --lang ja
 - `--wayland` を付けると、Wayland のセッション「ReactOS Shell (Wine, Wayland)」も入れます（X11 のセッション以上に実験的です）。
 - 詳しくは [docs/reactos.md](docs/reactos.md) にあります。
 
+## Windows 7 のシェル（実験的）
+
+Windows 7 SP1 x64 の ISO があれば、Windows 7 のシェル（Windows 7 ベーシックの見た目）を入れられます。
+
+```sh
+scripts/setup.sh --shell win7 --media /path/to/Windows7SP1x64.iso
+```
+
+- ISO の `sources/install.wim` から、シェルのファイルと、その言語の MUI ファイルだけを `.local/assets-win7` に取り出します
+  （エディションは Professional を使います。無ければ最後のもの）。言語は ISO で決まります。
+- prefix は `.local/prefix-win7`、設定は `~/.config/win4wine/win7-session.json`、セッションは「**Windows 7 Shell (Wine, X11)**」です。
+  XP や ReactOS のシェルと並べて入れられます（Wine と bridge は共通です）。
+- Windows 7 の Aero のカーソルを入れます。`--greeter` を付けると、ログイン画面も Windows 7 のログオン画面になります。
+- `--wayland` を付けると、Wayland のセッション「Windows 7 Shell (Wine, Wayland)」も入れます（X11 のセッション以上に実験的です。
+  [docs/wayland.md](docs/wayland.md)）。
+- `--theme` はまだ使えません。`--dpi` は使えます。
+- 確かめたのは日本語版の Windows 7 Professional SP1 だけです。詳しくは [docs/windows7.md](docs/windows7.md) にあります。
+
 ## 3. ログインする
 
 ディスプレイマネージャを再起動するか、マシンを再起動してください。
@@ -162,7 +181,7 @@ scripts/setup.sh --shell reactos --lang ja
 | `cursor_theme` | `win4wine-xp` | カーソルのテーマ。`null` で使いません |
 | `shutdown_command`, `reboot_command` | `systemctl poweroff` / `reboot` | 終了オプションで実行するコマンド |
 | `outputs` | （無し） | Wayland のセッションの、出力ごとの設定。例: `{"HDMI-A-1": {"scale": 1.5}, "DP-1": {"scale": 1, "position": "2560,0"}}`（`mode` も書けます。出力の名前は `wlr-randr` で見られます） |
-| `shell` | `xp` | `reactos` で ReactOS のシェル（`reactos-session.json` に setup.sh が書きます） |
+| `shell` | `xp` | `reactos` で ReactOS のシェル（`reactos-session.json` に setup.sh が書きます）、`win7` で Windows 7 のシェル（`win7-session.json`） |
 | `primary` | 一番左の出力 | Wayland のセッションで Win32 の主モニターにする出力の名前。XP のデスクトップとタスクバーはここに出ます |
 | `composite` | `true` | Wine の窓の中身を X サーバーに覚えさせます（Composite の自動リダイレクト）。窓を動かしたり閉じたりしたとき、下の Wine の窓が描き直すまで黒く見えることがなくなります。`false` で使いません |
 | `window_snap` | `false` | `true` で窓を画面の半分に寄せられます（Windows 7 の Aero Snap 風。XP には無い機能です）。Win+←/→ で左右の半分、Win+↑ で最大化、Win+↓ で元に戻す・最小化。タイトルバーを画面の左右の端へドラッグすると半分に、上端へドラッグすると最大化します。最大化した窓は、タイトルバーをドラッグすると元の大きさに戻ります。次にログインしたときから効きます |
@@ -219,6 +238,7 @@ sudo rm /usr/share/xsessions/xp-shell.desktop /usr/local/bin/xp-shell-session   
 sudo rm /usr/share/wayland-sessions/xp-shell-wayland.desktop /usr/local/bin/xp-shell-wayland-session   # Wayland のセッションも
 sudo rm /usr/share/xsessions/reactos-shell.desktop /usr/local/bin/reactos-shell-session   # ReactOS のシェルのセッションも
 sudo rm /usr/share/wayland-sessions/reactos-shell-wayland.desktop /usr/local/bin/reactos-shell-wayland-session
+sudo rm /usr/share/xsessions/windows7-shell.desktop /usr/local/bin/windows7-shell-session   # Windows 7 のシェルのセッションも
 python3 session/linux_apps.py .local/prefix --wine .local/wine-install/bin/wine --remove   # 作ったスタートメニューの項目を消す
 sudo rm -f /etc/X11/xorg.conf.d/20-win4wine-shadowfb.conf   # 仮想マシンの X の設定を消す（次に X を起動したときから）
 ```

@@ -20,9 +20,148 @@
 - 2026-10-12 の段階 11（Wayland のセッション）で 0027 を広げ、1 本（0062）を末尾に加えた（下の「段階 11」）。番号の振り直しは無い。
 - 2026-10-12 の ReactOS のシェル（段階 12）で 0035 と 0047 を広げ、4 本（0063〜0066）を末尾に加えた（下の「段階 12」）。番号の振り直しは無い。
 - 2026-10-13 に 5 本（0067、窓を動かしたときの下の窓の描き直し。0068、選んだメニュー項目のフェード。0069 と 0070、変換中の文字を入力欄の中に出す。0071、Win+R のダイアログが有効にならないことがあった）を末尾に加えた。番号の振り直しは無い。
+- 2026-10-13〜16 に、ウィンドウの寄せ（0073）、描画の速さ（0074、0075）、DrawThemeParentBackground の位置（0076）、ClearType（0077）、
+  Windows 7 のシェル（0078〜0119）を末尾に加えた。番号の振り直しは無い。
+- 2026-10-16 に、末尾に溜まった 0067〜0119 を整理した。既存のパッチを直すだけのもの 5 本を元のパッチに含め（0071 → 0023、
+  0069 → 0029、0117 → 0102、0116 と 0118 → 0105）、ほかはまとまりに合う位置に移した。Windows 7 のシェルのパッチは
+  「API と Wine の修正」「版 4 のテーマ」「セッション」「見た目」に分け、名前を書式（`external`、`win7`）に揃えた。119 本を
+  0001〜0114 に振り直した（下の「2026-10-16 の整理」）。最後に当てた後のソースは整理の前と同じ。
+  この整理の前の Windows 7 の文書は、0078 より前のパッチを、移植用のリポジトリのコミットの番号（例: 0053 = 今の 0065
+  タスクバーの背景）で書いたところがある。
+- 2026-10-16 に 0115（riched20。Windows 7 の検索欄の日本語）を「Windows 7 の見た目」の最後に加えた。番号の振り直しは無い。
+- 2026-10-16 の polish ブランチで 0115 を広げ（ホストの書式、DEFAULT_CHARSET）、0116（コンボ ボックスの一覧を外のクリックで閉じる）と 0117（IME の変換中の文字の下線）を末尾に加えた。master に入れる前に、まとまりの位置に並べ直す。
+- 2026-10-16 の polish ブランチで、XP のセッションの細部を実機と比べて合わせる 0118〜0123 を末尾に加えた（並べ直しは master の前）。
+- 同じく 0124（ReactOS のシェルの Common Controls 6）を末尾に加えた。
+- 2026-10-16 の polish ブランチで、末尾の 0116〜0118 をまとまりの位置に移した（下の「polish の並べ直し」）。0119〜0124 は
+  Windows 7 のシェルのために加えた仕組みを使うので、末尾の「XP と ReactOS のシェルの細部」のまとまりとして残した。あわせて、
+  0069（今の 0072）が書き直していた 0059（今の 0062）の XP の拡大縮小を、書き直した後の形で 0059 に含めた。最後に当てた後のソースは並べ直しの前と同じ。
+- 2026-10-17 の taskbar-settings ブランチ（Windows 7 のタスクバーの設定）で、2 本を「Windows 7 のシェルが呼ぶ API と Wine の修正」の
+  最後に加え（0096 SendNotifyMessage のブロードキャストの文字列、0097 DM_REPOSITION）、最大化した窓を作業領域に合わせ直す変更を
+  0024 に含めた。旧 0096〜0124 は 0098〜0126 になった（下の「タスクバーの設定」）。
+- 2026-10-17 の win7-wayland ブランチ（Windows 7 のシェルの Wayland のセッション）で、0079 の gdi32 CreateBitmapFromDxSurface を
+  スタブから失敗を返す関数にし（フォルダの窓の後でスタートボタンを押すとシェルが落ちた）、0107 を Wayland のセッション
+  （`WIN4WINE_COMPOSITED`）では合成しないようにした。0079 の PaintMonitor をモニターごとの壁紙にし、0109 で Windows 7 の
+  シェルのプロセスには DwmIsCompositionEnabled を FALSE にした。番号と本数は変えていない。labwc のパッチを広げ、wlroots に
+  0003 を加えた。
 
 それ以前の文書（`docs/history/investigations.md` の各節と、Git 管理外の開発の記録）に出てくるパッチ番号は、書いた時点の番号（段階 2 より前の旧番号、
 段階 2〜4 の 10.0 版の番号、段階 5 の 11.0 版の番号、または段階 6 の番号）。下の対応表で今の番号に読み替える。
+
+## タスクバーの設定（2026-10-17）
+
+旧番号は、この変更の前（v0.9.0）の番号。0001〜0095 は同じ番号のまま（0024 は広げた）。
+
+| 現在 | 旧番号 | 名前 |
+|---|---|---|
+| 0096 | （新規） | `win32u-broadcast-notify-strings` |
+| 0097 | （新規） | `user32-dm-reposition` |
+| 0098〜0126 | 0096〜0124 | （順は同じ） |
+
+## polish の並べ直し（2026-10-16）
+
+旧番号は、並べ直しの前の polish ブランチの番号。0001〜0033 と 0119〜0124 は同じ番号のまま。
+
+| 現在 | 旧番号 | 名前 |
+|---|---|---|
+| 0034 | 0116 | `winex11-external-click-outside-capture` |
+| 0035 | 0117 | `riched20-external-ime-composition` |
+| 0036〜0052 | 0034〜0050 | （順は同じ） |
+| 0053 | 0118 | `win32u-external-xp-bitmap-metrics` |
+| 0054〜0118 | 0051〜0115 | （順は同じ） |
+
+## 2026-10-16 の整理
+
+番号の変わったものだけを載せる（0001〜0022、0024〜0028 は同じ番号のまま）。旧番号は、整理の前の `wine/patches/` の番号。
+
+| 現在 | 旧番号 | 名前 |
+|---|---|---|
+| 0023 | 0023、0071 | `win32u-external-task-list-keys` |
+| 0029 | 0029、0069 | `winex11-external-xim-spot` |
+| 0030 | 0070 | `imm32-external-stale-ime-ui-window` |
+| 0031 | 0067 | `win32u-external-expose-flush` |
+| 0032 | 0073 | `win32u-external-window-snap` |
+| 0033 | 0074 | `winex11-external-gc-flush` |
+| 0034 | 0030 | `win32u-external-default-cascade` |
+| 0035 | 0031 | `win32u-external-ui-state` |
+| 0036 | 0032 | `win32u-external-xp-popup-menus` |
+| 0037 | 0033 | `user32-external-print-children` |
+| 0038 | 0034 | `user32-external-rebar-alignment` |
+| 0039 | 0035 | `user32-external-stretched-wallpaper` |
+| 0040 | 0068 | `win32u-external-no-selection-fade` |
+| 0041 | 0036 | `win32u-external-mono-text-advance` |
+| 0042 | 0037 | `user32-external-drawtext` |
+| 0043 | 0038 | `win32u-external-halftone-clip-mapping` |
+| 0044 | 0039 | `win32u-external-transparent-blt-mapping` |
+| 0045 | 0040 | `user32-external-classic-caption-glyphs` |
+| 0046 | 0041 | `user32-external-icon-premultiply` |
+| 0047 | 0042 | `conhost-external-double-width-cells` |
+| 0048 | 0043 | `win32u-external-unpainted-window-screen` |
+| 0049 | 0044 | `win32u-external-xp-dpi` |
+| 0050 | 0077 | `win32u-external-cleartype` |
+| 0051 | 0045 | `user32-classic-button-ideal-size` |
+| 0052 | 0046 | `comctl32-external-start-button` |
+| 0053 | 0047 | `comctl32-external-themed-shell-controls` |
+| 0054 | 0048 | `comctl32-external-label-offsets` |
+| 0055 | 0049 | `uxtheme-external-window-frames` |
+| 0056 | 0050 | `uxtheme-external-caption-region` |
+| 0057 | 0051 | `uxtheme-external-partial-frame-repaint` |
+| 0058 | 0052 | `uxtheme-external-caption-help-button` |
+| 0059 | 0053 | `uxtheme-external-image-resize` |
+| 0060 | 0054 | `uxtheme-external-premultiply` |
+| 0061 | 0055 | `uxtheme-external-set-window-theme-change` |
+| 0062 | 0056 | `uxtheme-external-font-profile` |
+| 0063 | 0057 | `uxtheme-external-localized-theme-values` |
+| 0064 | 0058 | `uxtheme-external-start-user-name-shadow` |
+| 0065 | 0059 | `uxtheme-external-taskbar-background` |
+| 0066 | 0060 | `uxtheme-external-clock` |
+| 0067 | 0061 | `uxtheme-external-rebar-grippers` |
+| 0068 | 0072 | `uxtheme-external-menu-bar-height` |
+| 0069 | 0075 | `uxtheme-external-paint-speed` |
+| 0070 | 0076 | `uxtheme-parent-background-origin` |
+| 0071 | 0062 | `winex11-external-rootless-screen` |
+| 0072 | 0063 | `explorer-external-folder-shell` |
+| 0073 | 0064 | `uxtheme-negative-theme-margins` |
+| 0074 | 0065 | `user32-external-switch-to-this-window` |
+| 0075 | 0066 | `user32-external-reactos-dialog-resource-names` |
+| 0076 | 0078 | `dlls-win7-shell-imports` |
+| 0077 | 0080 | `dlls-win7-start-menu` |
+| 0078 | 0084 | `apphelp-allow-perm-layer` |
+| 0079 | 0088 | `dlls-win7-folder-window-modules` |
+| 0080 | 0099 | `advapi32-saferiisexecutablefiletype` |
+| 0081 | 0087 | `xmllite-utf16-input` |
+| 0082 | 0113 | `xmllite-random-access` |
+| 0083 | 0089 | `combase-surrogate-bitness` |
+| 0084 | 0091 | `ntdll-mui-files` |
+| 0085 | 0093 | `server-hkcu-software-shared` |
+| 0086 | 0094 | `comdlg32-view-font-redraw` |
+| 0087 | 0095 | `comdlg32-item-dialog-windows-browser` |
+| 0088 | 0097 | `comdlg32-view-activate` |
+| 0089 | 0096 | `shell32-other-shell-registrations` |
+| 0090 | 0098 | `comctl32-foreign-imagelists` |
+| 0091 | 0114 | `kernelbase-number-format-zero` |
+| 0092 | 0115 | `windowscodecs-fant-scaling` |
+| 0093 | 0079 | `uxtheme-msstyles-format-4` |
+| 0094 | 0090 | `uxtheme-window-theme-attribute` |
+| 0095 | 0100 | `uxtheme-drawthemeparentbackgroundex` |
+| 0096 | 0101 | `uxtheme-padded-border-caption-buttons` |
+| 0097 | 0102、0117 | `win32u-themed-menus` |
+| 0098 | 0109 | `uxtheme-drawthemetextex-callback` |
+| 0099 | 0111 | `uxtheme-min-part-size` |
+| 0100 | 0081 | `server-external-win7-stored-dacl` |
+| 0101 | 0082 | `uxtheme-external-win7-taskbar` |
+| 0102 | 0083 | `dlls-external-win7-start-button` |
+| 0103 | 0085 | `shell32-external-win7-notify-icon` |
+| 0104 | 0086 | `dlls-external-win7-keys-folder-windows` |
+| 0105 | 0092 | `ntdll-external-win7-comctl32` |
+| 0106 | 0110 | `user32-external-dt-prefixonly` |
+| 0107 | 0112 | `dlls-external-win7-open-folders` |
+| 0108 | 0103 | `winex11-external-win7-shadow-rounding` |
+| 0109 | 0104 | `comctl32-external-win7-control-details` |
+| 0110 | 0105、0116、0118 | `comctl32-external-win7-listview` |
+| 0111 | 0106 | `user32-external-win7-system-icons` |
+| 0112 | 0107 | `user32-external-win7-message-boxes` |
+| 0113 | 0108 | `win32u-external-win7-cleartype` |
+| 0114 | 0119 | `win32u-external-win7-linked-fonts` |
 
 ## 段階 12（ReactOS のシェル、2026-10-12）
 
@@ -258,3 +397,4 @@ Unix ライブラリとしてビルドされる。
 | 0035 | アクセスキーの下線を XP と同じ長さ（文字の送り幅いっぱい）にした（`tests/text-underline.c`） |
 
 デスクトップの右クリックメニューの区切り線（段階 3）はパッチではなく registry profile 23（`prefix/registry.py`）で直した。
+- 2026-10-16 の polish ブランチで、全パッチを見直して重複を除いた。番号と本数は変えていない。各パッチにあった `WIN4WINE_SHELL` の読み取り（約 20 か所、win7 の判定に外部シェルの確認の有無や大文字小文字の扱いの違いがあった）を 0013 の `win4wine_shell()` にまとめ、Windows 7 と XP のフォーカス枠（0109・0123）、メッセージ ボックスの配置の共通部分（0112・0123）、通知領域のアイコンの送り方（0028・0103）、HALFTONE の標本の計算（0043）、DefWindowProcA/W の外部シェルの後処理（0055・0057・0058）をそれぞれ一つにした。ほかに、使っていない引数や別名の関数、ずれていた関数の説明のコメントを直し、0084 のコンパイルの警告を消した。動作は変えていない（XP・ReactOS のシーンと XP の実機との比較で確認）。
