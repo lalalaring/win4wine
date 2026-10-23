@@ -32,7 +32,7 @@ import tempfile
 ROOT = Path(__file__).resolve().parents[1]
 MARKER = 'reactos-shell.json'
 # Bump when the registry settings below change; stage then applies them again.
-VERSION = 4
+VERSION = 5
 # Loaded natively by ros-explorer.exe only; Wine has builtin modules of these names.
 SHELL_DLLS = ('shell32', 'browseui', 'shdocvw', 'shlwapi', 'comctl32', 'zipfldr')
 # ReactOS-only modules (no Wine builtin of the name): ros-explorer.exe loads them by name.
@@ -144,7 +144,7 @@ class Prefix:
         for name in SHELL_DLLS + EXTRA_DLLS:
             self.place(native / f'{name}.dll', self.system / f'{name}.dll')
         # ReactOS's Common Controls 6 beside the shell, which takes it from
-        # there (Wine 0126); the assembly stays Wine's, for every other 32-bit
+        # there (Wine 0143); the assembly stays Wine's, for every other 32-bit
         # program (a replaced one gave them Wine's version 5, without buttons
         # or edit controls).
         self.place(native / 'sxs/comctl32.dll', self.path / 'drive_c/ros/comctl32.dll')
@@ -152,8 +152,9 @@ class Prefix:
         assembly = self.path / f'drive_c/windows/winsxs/{SXS}/comctl32.dll'
         if wine_controls.is_file() and assembly.is_file():
             self.place(wine_controls, assembly)
-        # The desktop's Properties applet (Wine's own desk.cpl is an empty stub)
-        # and the launcher that the shortcuts of the Windows tools point at.
+        # The desktop's Properties applet (ReactOS's desk.cpl is not in this
+        # prefix), the window and the icons it needs, and the launcher that the
+        # shortcuts of the Windows tools point at.
         bridge = ROOT / '.local/bridge'
         for name in ('desk.cpl', 'display-properties.exe'):
             if (bridge / name).is_file():
@@ -194,6 +195,9 @@ class Prefix:
         self.reg(r'HKCU\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer', 'NoSMHelp', 1, 'REG_DWORD')
         self.menu_folders()
         self.tools_menu()
+        # The shell opens the desktop's Properties as "rundll32 desk.cpl": run
+        # the applet beside it (place_files) rather than Wine's empty stub.
+        self.reg(r'HKCU\Software\Wine\AppDefaults\rundll32.exe\DllOverrides', 'desk.cpl', 'native')
         # Wine rewrites the system links for the prefix's locale.
         if self.lang in ('ja', 'zh'):
             for face in LINKED_FONTS:
@@ -212,9 +216,6 @@ class Prefix:
                          family, 'Droid Sans Fallback')
             for family in ('MS Shell Dlg', 'SimSun', 'MS UI Gothic'):
                 self.reg(r'HKCU\Software\Wine\Fonts\Replacements', family, 'Droid Sans Fallback')
-        # The shell opens the desktop's Properties as "rundll32 desk.cpl": run
-        # the applet beside it (place_files) instead of Wine's empty stub.
-        self.reg(r'HKCU\Software\Wine\AppDefaults\rundll32.exe\DllOverrides', 'desk.cpl', 'native')
 
     def menu_folders(self):
         """Give the Start menu folders ReactOS's names in the prefix's language.
@@ -304,6 +305,18 @@ class Prefix:
             self.theme(theme)
 
 
+def quick_launch(dest):
+    """The Quick Launch folder, as ReactOS's setup makes it (media/inf/shortcuts.inf).
+
+    Without it the taskbar's Toolbars menu cannot create the Quick Launch
+    toolbar ("Cannot create toolbar"). ReactOS 0.4.16's explorer does not keep
+    its toolbars: the toolbar is added again in each session."""
+    user = pwd.getpwuid(os.getuid()).pw_name
+    folder = dest / f'drive_c/users/{user}/AppData/Roaming/Microsoft/Internet Explorer/Quick Launch'
+    if not folder.exists() and not folder.is_symlink():
+        folder.mkdir(parents=True)
+
+
 def copy_themes(assets, dest):
     """ReactOS's visual styles from the extracted files, where Windows keeps themes."""
     for directory, _, _ in THEMES.values():
@@ -339,6 +352,7 @@ def create(assets, dest, home, wine, lang, theme='classic'):
     # Wine has a Marlett of its own; ReactOS's has the glyphs its menus use.
     shutil.copyfile(assets / 'fonts/Marlett.ttf', fonts / 'ros-marlett.ttf')
     copy_themes(assets, dest)
+    quick_launch(dest)
     wallpaper = dest / 'drive_c/windows/Web/Wallpaper'
     wallpaper.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(assets / 'wallpaper/Nebula.bmp', wallpaper / 'Nebula.bmp')
@@ -406,6 +420,7 @@ def stage(dest, wine=None):
     wine_current = inf.is_file() and current == str(int(inf.stat().st_mtime))
     applied = version.read_text().split() if version.is_file() else []
     lang = config.get('lang', 'en')
+    quick_launch(dest)
     if wine_current and applied == [str(VERSION), current] and locale_current(dest, lang):
         # Nothing changed, but a first wineboot or an update may have replaced files.
         prefix.place_files()

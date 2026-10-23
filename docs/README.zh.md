@@ -32,7 +32,7 @@
 XP 的 shell32/browseui/shdocvw/shlwapi/comctl32 通过 AppDefaults **只给这个进程**用（native），其他程序仍用 Wine 的 DLL；
 补丁大多只在 `WIN4WINE_EXTERNAL_SHELL` 存在时生效；prefix 是 WoW64，XP 的 DLL 放 `syswow64`，COM 注册只写 32 位一侧。
 
-**WM（`bridge-wm/wm.py`）**：不自己画边框、不 reparent。用补丁 0019 加的 `_WIN4WINE_CLASS`/`_WIN4WINE_HWND` 区分
+**WM（`bridge-wm/wm.py`）**：不自己画边框、不 reparent。用补丁 0025 加的 `_WIN4WINE_CLASS`/`_WIN4WINE_HWND` 区分
 XP 桌面（Progman）、任务栏、开始菜单、代理边框、普通 Wine 窗口与 Linux 窗口；桌面放最底、任务栏与开始菜单在上、
 Win32 最前窗口在其上；由任务栏位置算工作区 `_NET_WORKAREA`；转发 Alt+Tab / Windows 键 / Ctrl+Esc；用 XSETTINGS 藏起
 GTK 的标题栏按钮；对 Wine 窗口做 Composite 自动重定向（`session.json` 的 `composite`，默认开；Linux 窗口不重定向，
@@ -41,7 +41,7 @@ GTK 的标题栏按钮；对 Wine 窗口做 Composite 自动重定向（`session
 **proxy（`bridge-wm/proxy.c`）**：Wine 侧的 Win32 进程，为每个 Linux 窗口建一个 `Win4WineProxy` 代理窗口。
 XP 的任务栏把它当普通 Win32 窗口（标题、最小化状态、图标、shell hook 通知）；代理带 `WS_OVERLAPPEDWINDOW`，
 由 Wine 用 XP（Luna）主题绘制边框，WM 再把边框叠在 Linux 窗口正下方——于是就"看到"Linux 窗口带 XP 边框。
-边框按钮与任务栏操作通过命令文件转给 WM；shell hook 靠补丁 0020 记录的注册目标转发；同样事件驱动。
+边框按钮与任务栏操作通过命令文件转给 WM；shell hook 靠补丁 0026 记录的注册目标转发；同样事件驱动。
 
 **IPC 文件**（`$XDG_RUNTIME_DIR` 下 0700 的目录，先写临时文件再 rename，只在内容变化时写）：
 `windows.tsv`（WM→proxy 的窗口列表）、`geometry.tsv`（窗口内容位置）、`frames.tsv`（边框余量）、
@@ -55,7 +55,7 @@ proxy 在拖动过程中不发 `geometry` 命令。最大化用 `ShowWindow(SW_M
 边框只在 Linux 窗口持有 X 键盘时显示为活动外观（用 `WM_NCACTIVATE`，因为 Wine 会拒绝未获得输入的进程的
 `SetForegroundWindow`）；对话框（transient）不加边框、不上任务栏。
 
-**图标**：从 `_NET_WM_ICON`（没有就用 `WM_HINTS` 的 pixmap）读，写成 `icon-XID.argb`；跨进程读图标需要补丁 0022
+**图标**：从 `_NET_WM_ICON`（没有就用 `WM_HINTS` 的 pixmap）读，写成 `icon-XID.argb`；跨进程读图标需要补丁 0028
 （opt-in 时把图标像素注册到 wineserver 供读取）。
 
 **键盘**：Alt+Tab 由 WM 抓键盘并写 `switch.tsv`，proxy 画 XP 的切换窗口，确定后送 `switch XID`；
@@ -64,12 +64,12 @@ proxy 用 `SendInput` 送进 Wine。窗口吸附（`window_snap`）默认关闭�
 
 **托盘（`bridge-wm/tray.py`）**：StatusNotifierItem 走会话总线（`org.kde.StatusNotifierWatcher`，菜单用 `com.canonical.dbusmenu`）；
 XEmbed 走 `_NET_SYSTEM_TRAY_S0`（离屏窗口 + Composite 取图，点击用 XTest 送真实按压）。proxy 用 `Shell_NotifyIconW`
-把图标放进 XP 通知区域（补丁 0028 负责让 XP 的 Explorer 读懂格式）。
+把图标放进 XP 通知区域（补丁 0034 负责让 XP 的 Explorer 读懂格式）。
 
 **会话（`session/supervisor.py`）**：启动顺序为 XP 登录画面 → WM → tray.py → fcitx5 → prefix 更新 → Linux 应用开始菜单 →
 proxy → XP 外壳。启动 fcitx5 之前先把输入法写进它的配置（缺了就补，已有不动）。任务栏出现即认为启动成功；
 外壳或 proxy 崩溃会重启 Wine，120 秒内失败 3 次则退回到不带 XP DLL 的 prefix + Wine 自带 explorer + xterm（恢复用）。
-注销/关机走补丁 0018 的请求文件；关机命令取 `session.json` 的 `shutdown_command`/`reboot_command`。
+注销/关机走补丁 0024 的请求文件；关机命令取 `session.json` 的 `shutdown_command`/`reboot_command`。
 日志在 `~/.local/state/win4wine/`，每次启动把上次的重命名为 `*.log.1`。
 
 **Linux 应用开始菜单（`session/linux_apps.py`）**：读 XDG 的 desktop entry，为每个可见应用在 prefix 的公共 Programs 里
@@ -81,12 +81,12 @@ proxy → XP 外壳。启动 fcitx5 之前先把输入法写进它的配置（�
 登录中/注销中的 XP 画面由 `greeter/xp-splash.py` 在会话内显示；XP 光标由 `greeter/cursors.py` 从 user32.dll 生成
 X 光标主题 `win4wine-xp`。
 
-**DPI**：与 XP 一样由 prefix 的 `HKCU\Control Panel\Desktop\LogPixels` 决定（`prefix/display.py --dpi`），补丁 0051 让外壳
+**DPI**：与 XP 一样由 prefix 的 `HKCU\Control Panel\Desktop\LogPixels` 决定（`prefix/display.py --dpi`），补丁 0061 让外壳
 成为 system DPI aware；supervisor 把同一个值交给 Linux 应用（`session/dpi.py`：`Xft.dpi`、fontconfig dpi、
 `XCURSOR_SIZE`，192 以上再加 GTK 的 `GDK_SCALE`）；欢迎屏幕的 DPI 在 `/etc/win4wine/greeter.json`。
 
 **字体平滑（ClearType）**：`HKCU\Control Panel\Desktop` 的 `FontSmoothing` 与 `FontSmoothingType`（1/2）决定，
-默认与 XP 一样是「标准」；ClearType 时补丁 0052 按 XP 的方式绘制文字（带嵌入点阵的字号保持黑白，如 MS UI Gothic ≤22 像素），
+默认与 XP 一样是「标准」；ClearType 时补丁 0062 按 XP 的方式绘制文字（带嵌入点阵的字号保持黑白，如 MS UI Gothic ≤22 像素），
 Linux 应用也走 RGB 子像素（`Xft.rgba`）。
 
 **Wayland 会话（`wayland/`）**：`wayland/session.sh` 建 IPC 目录并启动打过补丁的 labwc（用 `-S` 在其中运行 supervisor），
@@ -115,7 +115,7 @@ XP 任务栏把 Linux 窗口当 Win32 窗口，所以 proxy 为每个窗口准�
 **中日文输入**：用 fcitx5（日文 Mozc、简体中文版拼音），与 Wine 走 XIM、与 GTK/Qt 走各自的输入模块；启动与环境变量由
 supervisor 管理，不用 im-config（避免影响其他会话）；输入法本身由 supervisor 写进 fcitx5 配置（fcitx5 自己不会加输入法）；
 输入模式显示在 XP 通知区域；候选文字按 XP IME 的方式显示在输入框内（XIM 的 on-the-spot，`UseOnTheSpot=True`，
-补丁 补丁 0029 让候选窗口标在插入符下方）。
+（补丁 0035 让候选窗口标在插入符下方）。
 
 **登录界面**：自己用 Python + GTK3 + cairo + Pango 画；不运行 XP 的 logonui.exe/msgina.dll，只读资源——因为在处理密码的地方
 不跑微软的代码；文字按 GDI 的排版方式绘制，布局对齐真机 XP 上量到的数值。
@@ -132,27 +132,46 @@ XP 外壳与 Wine 保持为 Xwayland 客户端（XP 的 Explorer 自己决定窗
 所以与它有关的数值（经典主题宋体 9 点、控制台新宋体 8×16、欢迎屏幕布局）来自 XP 的默认值与日文版的实测，没有真机测量；
 只把尺寸、颜色、规则等数值放进仓库，不放 XP 的像素；测试在 `tests/`，同一个探针在真机 XP 和 Wine 上都跑一遍再比较。
 
-## [patches.md](patches.md) — Wine 的 126 个补丁
+## XP 会话的增强（AshesTom 的贡献与 xptray）
 
-`wine/patches/` 里是 126 个补丁，按顺序打在未改动的 Wine 11.0 上（版本见 `wine/upstream.env`），由 `wine/build.sh` 调用
+上游这一轮把 [AshesTom 的叉子](https://github.com/AshesTom/win4wine)里的 XP 会话增强并了进来，
+所以「XP 外壳」现在不只是 shell 本身：
+
+- **XP Explorer 的附加项**（`prefix/extras.py`、`xp-explorer/`）：文件夹窗口左侧的任务窗格、**画面属性**
+  （「Windows XP」与「Windows 经典」两套主题、样式与配色；配色由 ISO 里的 `HIVEDEF.INF` 与 `themeui.dll` 生成，
+  见 `prefix/xp_schemes.py`）、图片缩略图与预览、XP 的启动/登录/注销等声音、网络连接、Internet Explorer 6、
+  Windows Media Player 9、开始菜单左栏（Internet、电子邮件、常用程序）。全部取自用户自己的 ISO。
+- **xptray**（`xp-explorer/helpers/xptray.c`）：通知区域里 XP 自己的网络、电池、音量图标与音量弹出条，
+  状态来自 NetworkManager 与 PipeWire/PulseAudio；无线网络列表里可以首次连接（XP 的网络密钥对话框），
+  菜单与对话框的文字从 ISO 的 XP 文件里读。
+- **键盘布局**（`session/keyboard.py`）：初始跟随系统（`localectl`）；在 XP 的「区域和语言选项」里增删输入语言后，
+  会话的布局立刻跟随；两种以上时用 XP 一样的左 Alt+Shift 切换。
+- **`xp.sh`**：在 Arch/CachyOS 等发行版上，不离开当前桌面就能试 XP 会话的入口（`xp.sh setup` / `run` 在 Xephyr 窗口里跑
+  真正的会话 / `log` / `kill`）。
+- **画面属性走的是 XP 自己的 `desk.cpl`**，配 Wine 补丁 0113〜0119（Vista/7 主题的版本 4 样式）与 0086〜0087 的调整。
+  本仓库自己的属性部件（`bridge-wm/display-properties.c` + `desk-cpl.c`）现在只用于 **ReactOS 外壳**——那个 prefix
+  里没有 XP 的 `desk.cpl`。
+
+## [patches.md](patches.md) — Wine 的 151 个补丁
+
+`wine/patches/` 里是 151 个补丁，按顺序打在未改动的 Wine 11.0 上（版本见 `wine/upstream.env`），由 `wine/build.sh` 调用
 `wine/patch-state.py` 应用（也能给只打了一部分的源码补上缺的部分）。
 
 **opt-in**：给 XP 外壳的改动只在设置了 `WIN4WINE_EXTERNAL_SHELL` 的进程里生效（会话与 prefix 辅助工具会设置它），
-所以同一个 Wine 跑普通 Windows 程序时行为不变。判断集中在补丁 0013 加入的 `include/wine/win4wine.h` 的 `win4wine_shell()`。
+所以同一个 Wine 跑普通 Windows 程序时行为不变。判断集中在补丁 0019 加入的 `include/wine/win4wine.h` 的 `win4wine_shell()`。
 只有文档化行为的修正等少数补丁不需要 opt-in（逐条的列表见原文的 opt-in 栏）。另外还有两个更细的开关：
 `WIN4WINE_SESSION_REQUEST`（注销/关机请求）与 `WIN4WINE_FOLDER_SHELL`（只有 ReactOS 会话设置）；
-外壳的种类由 `WIN4WINE_SHELL` 区分（`reactos`、`win7`，不设就是 XP），补丁 0013 的 `win4wine_shell()` 统一判断。
+外壳的种类由 `WIN4WINE_SHELL` 区分（`reactos`、`win7`，不设就是 XP），补丁 0019 的 `win4wine_shell()` 统一判断。
 
-**分组**：0001〜0008 Wine 通用修正；0009〜0012 XP 部件调用的 API；0013〜0018 外部外壳的基础；0019〜0035 与 bridge
-（WM/proxy）协作、X11 显示与中文/日文输入；0036〜0042 窗口布局、UI 状态、菜单、WM_PRINT、壁纸；0043〜0053 文字与
-GDI 像素；0054〜0057 控件；0058〜0073 uxtheme；0074 Wayland 会话；0075〜0078 ReactOS 外壳；0079〜0097 Windows 7
-外壳调用的 API 与 Wine 修正；0098〜0104 Vista/7 主题（版本 4 样式）；0105〜0112 Windows 7 外壳的会话；0113〜0120
-Windows 7 的外观；0121〜0126 XP 与 ReactOS 外壳的细节。
-文档还写了排列顺序的思路、补丁的书写格式、以及新增补丁的步骤；旧编号对照见 `history/patch-history.md`。
+**分组**：0001〜0011 Wine 通用修正；0012〜0018 XP 部件调用的 API；0019〜0024 外部外壳的基础；0025〜0043 与
+bridge（WM/proxy）协作、X11 显示与中文/日文输入；0044〜0052 窗口布局、UI 状态、菜单、WM_PRINT、壁纸；
+0053〜0064 文字与 GDI 像素；0065〜0068 控件；0069〜0087 uxtheme；0088〜0089 Wayland 会话；0090〜0093 ReactOS
+外壳；0094〜0112 Windows 7 外壳调用的 API 与 Wine 修正；0113〜0119 Vista/7 主题（版本 4 样式）；0120〜0128
+Windows 7 外壳的会话；0129〜0137 Windows 7 的外观；0138〜0151 XP 与 ReactOS 外壳的细节。
 
-与本仓库中文/日文支持相关的几个（新编号）：**0044**（CJK 折行与文本测量，代码页从 932 推广到 932 与 936）、**0049**
-（控制台双字节字符占两个单元格）、**0065/0066**（uxtheme 的日文字体 profile 与本地化主题值，从用户自己的 msstyles 取字体）、
-**0052**（ClearType）。
+与本仓库中文/日文支持相关的几个：**0054**（CJK 折行与文本测量，代码页从 932 推广到 932 与 936）、**0059**（控制台双字节
+字符占两个单元格）、**0076/0077**（uxtheme 的字体 profile 与本地化主题值，从用户自己的 msstyles 取字体）、**0062**
+（ClearType）、**0035**（候选窗口标在插入符下方）、**0043**（从 HKCU\Keyboard Layout 读输入语言）。
 
 ## [development.md](development.md) — 开发
 
@@ -211,7 +230,7 @@ scripts/setup.sh --shell reactos --lang zh    # 日文用 --lang ja，英文用 
 Nebula 壁纸、隐藏 Wine 命名空间里的 Internet 与「/」、不显示「帮助和支持」。
 
 **会话**：`reactos-session.json` 里 `"shell": "reactos"`，supervisor 启动 `C:\ros\ros-explorer.exe`（不显示 XP 欢迎屏幕）、
-设置 `WIN4WINE_FOLDER_SHELL`（补丁 0075 让 Wine 的 explorer 把控制面板/搜索/Win+E 之类的启动转给 ReactOS 的 shell）
+设置 `WIN4WINE_FOLDER_SHELL`（补丁 0090 让 Wine 的 explorer 把控制面板/搜索/Win+E 之类的启动转给 ReactOS 的 shell）
 与 `WIN4WINE_SWITCHER=reactos`（Alt+Tab 用 ReactOS 的样式绘制）。bridge 与面向 XP 的补丁在这里同样有效。
 
 **可选**：ReactOS 的 `lautus`/`lunar`/`mizu` 主题（`--theme`），以及 ReactOS 的登录界面
@@ -237,8 +256,7 @@ X11 会话完全保留、行为不变。**比 X11 会话更实验**，确认范�
 **部件**：`wayland/build.sh` 把 wlroots 0.18.2 与 libsfdo 作为 subproject 静态编进 labwc 0.8.3；
 wlroots 的 0001（把 scene 的 surface 按 1/缩放放置、必要时裁剪，从而在该输出上逐像素绘制）、0002（XWM 保留
 `_NET_WM_STATE_ABOVE`）；labwc 的 0001（`xwayland-scale.c` 与承担 bridge-wm 角色的 `win4wine.c`）；
-`wayland/labwc/` 的配置；`wayland/session.sh` 与 `session/supervisor.py` 的分工；Wine 的 0027（Xwayland 下读不到根窗口，
-XP 的阴影改画成带透明度的黑窗口）与 0062（注销的灰屏由各窗口内容拼出）。
+`wayland/labwc/` 的配置；`wayland/session.sh` 与 `session/supervisor.py` 的分工；Wine 的 0088〜0089（Xwayland 下读不到根窗口，XP 的阴影改画成带透明度的黑窗口；注销的灰屏由各窗口内容拼出）。
 
 **`xwayland-scale.c`**：给 Xwayland 看自制的 xdg-output，把各输出按像素并排（"X 空间"），主显示器放在最前（X 的 0,0）
 并设为 Xwayland RandR 的 primary；X 窗口按 1/缩放放置（X 的一个像素对应输出的一个像素），跨不同缩放输出的窗口按输出裁剪拼接；
@@ -281,7 +299,7 @@ XP 外壳与 ReactOS 外壳、X11 与 Wayland 会话都能用，对 Wine 窗口�
 | 拖动已吸附窗口的标题栏 | 回到吸附前的大小并继续拖动 |
 | 拖动已最大化窗口的标题栏 | 稍一移动就还原并继续拖动（XP 里最大化的窗口不能拖动） |
 
-**机制**：proxy 用 `RegisterHotKey` 接 Win+方向键；X11 下标题栏拖动由 Wine 的移动循环完成（补丁 0032 让它发
+**机制**：proxy 用 `RegisterHotKey` 接 Win+方向键；X11 下标题栏拖动由 Wine 的移动循环完成（补丁 0038 让它发
 `EVENT_SYSTEM_MOVESIZESTART/END`），proxy 据此画去向框并在松手时吸附，剥离吸附与还原最大化也要在 Wine 的循环里做；
 Wayland 下交给 labwc 自己的 snapping，proxy 只把 Win+方向键转给它，并通过 `tiled.tsv`/`snapping.tsv` 了解状态。
 
@@ -303,7 +321,7 @@ Basic 主题（还没有 Aero 玻璃效果）。开始菜单、任务栏、通�
 - **光标与登录画面**：从 Windows 7 的 `user32.dll` 生成 X 光标主题；`greeter/w7logon.py` 绘制 Windows 7 的登录画面。
 - **会话**：`--shell win7 --media <Windows 7 的 ISO>`，会话名「Windows 7 Shell (Wine, X11)」；
   语言取媒体本身的（`--lang` 只对 ReactOS 外壳有效）。
-- **补丁**：Windows 7 相关的补丁占 0079〜0120（外壳调用的 API、Vista/7 主题的版本 4 样式、会话与外观），
+- **补丁**：Windows 7 相关的补丁占 0094〜0137（外壳调用的 API、Vista/7 主题的版本 4 样式、会话与外观），
   这些只在 `WIN4WINE_EXTERNAL_SHELL` 且 `WIN4WINE_SHELL=win7` 时生效。
 - **限制**：仍是试验阶段，只在日文版上验证过；没有 Aero 玻璃；原文「制限」一节列了其余部分。
 

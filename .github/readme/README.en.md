@@ -24,7 +24,7 @@
 
 ## Install
 
-1. Get a Windows XP Professional SP3 (x86) ISO (Japanese, Simplified Chinese or English) **yourself**.
+1. Get a Windows XP Professional SP3 (x86) ISO (Japanese or English) **yourself**.
 2. On a freshly installed Debian 13, run as the user who will log in:
 
 ```sh
@@ -72,34 +72,49 @@ With a Windows 7 ISO, it can also run **Windows 7's shell** (the Windows 7 Basic
 - **XP's shell**: Luna (or Classic) taskbar, Start menu, desktop, My Computer and folder windows.
 - **Linux applications**: Linux windows get XP's frames; the taskbar, Alt+Tab, minimize and maximize work as on XP.
   Linux applications are listed under All Programs.
-- **Notification area**: Linux tray icons (StatusNotifierItem and XEmbed) show up in XP's notification area.
-- **Japanese and Chinese input**: fcitx5, with Mozc for Japanese and Pinyin on Simplified Chinese XP, toggled with
-  Ctrl+Space (or Zenkaku/Hankaku on Japanese XP), in GTK, Qt and Wine applications. The session puts the input method into
-  fcitx5's profile, so it works from the first login.
-- **Japanese, Simplified Chinese or English XP**: any of the three ISOs works. The language is detected from the ISO, and the
-  fonts (Tahoma and others on English XP, 宋体/SimSun on Simplified Chinese XP), the locale, the console's font and the Welcome
-  screen follow that XP (no Japanese or Chinese input is set up for English XP).
+- **Notification area**: Linux tray icons (StatusNotifierItem and XEmbed) show up in XP's notification area,
+  beside XP's own network, battery and volume icons and their flyouts (Volume, Power Meter, Wireless Network
+  Connection Status), fed by NetworkManager and PipeWire or PulseAudio (from XP Explorer in [AshesTom's fork](https://github.com/AshesTom/win4wine)).
+  The wireless network list connects to new networks too, through XP's network key dialog. Their menus and windows
+  read their words from your ISO's XP files.
+- **From XP Explorer**: the folder task pane, Display Properties (the Windows XP and Windows Classic themes, styles and
+  color schemes; the schemes are made from your ISO's HIVEDEF.INF and themeui.dll), image thumbnails and previews,
+  XP's sounds (startup, logon and logoff too),
+  Network Connections, Internet Explorer 6, Windows Media Player 9, and the Start menu's left column (Internet,
+  E-mail and the most used programs), all from your own ISO's files (`prefix/extras.py`).
+- **Keyboard layout**: the Linux system's (`localectl`) at first. Add input languages or change the default in
+  Control Panel, Regional and Language Options, Languages, Details (XP's own), and the session's layout (labwc on
+  Wayland, setxkbmap on X11) follows at once; with two or more, Left Alt+Shift switches them as on XP
+  (`session/keyboard.py`).
+- **Japanese and Chinese input**: fcitx5, with Mozc for Japanese and Pinyin on Simplified Chinese XP; Ctrl+Space (or
+  Zenkaku/Hankaku for Japanese) toggles, in GTK, Qt and Wine applications.
+- **Japanese, Simplified Chinese or English XP**: any of the ISOs works. The language is detected from the ISO, and the
+  fonts (MS UI Gothic on Japanese XP, 宋体 (SimSun) on Simplified Chinese XP, Tahoma and others on English XP), the locale,
+  the command prompt's font and the Welcome screen follow that XP (no input method is set up for English XP).
 - **Windows applications**: a WoW64 Wine 11.0 runs 32-bit and 64-bit programs. Run `wine setup.exe` in a terminal and
   the installer's shortcuts land in XP's Start menu.
-- **The parts XP's shell is missing**: right-clicking the desktop → Properties opens a real Display Properties window
-  (theme, Start menu, DPI, font smoothing), and the Start menu's Accessories folder holds Task Manager, Notepad,
-  Command Prompt, Registry Editor, Control Panel and Wine Configuration. Chinese and Japanese text in Wine's own
-  windows no longer comes out as boxes: the families the prefix lacks point at its DroidSansFallback.
-- **Proton's Direct3D layers**: DXVK (Direct3D 9/10/11) and VKD3D-Proton (Direct3D 12) from a Proton build can be put
-  into a prefix of this Wine, and games then run on Vulkan. Double-clicking a `.exe` goes through those layers, both in
-  the Windows shell and, through a MIME handler, in the Linux file manager (the Wine has to be built with Vulkan).
 - **XP Welcome screen**: an optional LightDM greeter that shows XP's Welcome and log-off screens.
+  While the shell starts, XP's big "welcome" screen is shown.
 - **XP's keys**: the Windows key, Ctrl+Esc, Win+R and Win+E.
+- **Quick Launch**: right-click the taskbar, Toolbars, Quick Launch (XP and ReactOS; on Windows 7, as on the real one, New
+  Toolbar with the Quick Launch folder). Shortcuts to Linux applications from the Start menu can go there too, and Show
+  Desktop gives the windows back when used again, as on Windows.
 - **Recovery**: if the XP shell keeps crashing, the session falls back to Wine's own explorer and an xterm.
 - **Wayland session (optional, even more experimental than the X11 session)**: a patched labwc instead of the X11 WM
   (XP, ReactOS and Windows 7 shells), with a scale per monitor and scales such as 125% or 150%; the shell stays crisp,
   and Wayland applications get the shell's frames too. It is new, tested less than the X11 session and has known limits ([docs/wayland.md](../../docs/wayland.md),
   Japanese). The X11 session is the one to try first.
 - **ReactOS shell (optional)**: the session with ReactOS 0.4.16's explorer instead of XP's, in Japanese, Simplified Chinese or
-  English; it can be set up beside the XP shell.
+  English; it can be set up beside the XP shell. The desktop's Properties opens a real Display Properties dialog (theme,
+  Start menu, DPI, font smoothing), and the Start menu's Accessories folder holds Task Manager, Notepad, Command Prompt,
+  Registry Editor, Control Panel and Wine Configuration. The font families the prefix lacks point at its DroidSansFallback,
+  so Wine's own windows show Japanese and Chinese instead of boxes.
+- **Proton's Direct3D layers**: with Proton's DXVK (Direct3D 9/10/11) and VKD3D-Proton (Direct3D 12) installed into this
+  Wine's prefix, games run on Vulkan. A double-clicked `.exe` goes through these layers from the Windows shell and, through
+  the MIME handler, from the Linux file manager too (the Wine has to be built with Vulkan).
 - **Windows 7 shell (optional, experimental)**: the session with Windows 7 SP1 x64's explorer (the Windows 7 Basic look; no Aero
   glass yet). The Start menu, taskbar, notification area and folder windows work, and Linux applications are grouped per
-  application on the taskbar. Only Japanese Windows 7 has been tested.
+  application on the taskbar. Tested with Japanese Windows 7, and in English with its strings replaced by the English language pack's.
 
 <table>
   <tr>
@@ -112,6 +127,22 @@ With a Windows 7 ISO, it can also run **Windows 7's shell** (the Windows 7 Basic
       The ReactOS shell (<code>--shell reactos</code>; no XP ISO needed)
     </td>
   </tr>
+  <tr>
+    <td align="center" width="50%">
+      <img src="../../docs/images/screenshot-win7-en.png" alt="The Windows 7 shell's Start menu with Linux and Windows applications" width="400" /><br />
+      The Windows 7 shell (<code>--shell win7</code>; experimental)
+    </td>
+    <td align="center" width="50%">
+      <img src="../../docs/images/screenshot-win7-small-en.png" alt="The Windows 7 shell with the taskbar's small icons and labels" width="400" /><br />
+      The taskbar's "Use small icons" and "Never combine" (applies at once)
+    </td>
+  </tr>
+  <tr>
+    <td align="center" colspan="2">
+      <img src="../../docs/images/screenshot-win7-logon.png" alt="Choosing a user on the Windows 7 logon screen" width="400" /><br />
+      The Windows 7 logon screen (<code>--greeter</code>)
+    </td>
+  </tr>
 </table>
 
 ## Caution
@@ -121,28 +152,22 @@ With a Windows 7 ISO, it can also run **Windows 7's shell** (the Windows 7 Basic
 >   Follow Microsoft's license terms for the ISO and the files extracted from it.
 > - **Use at your own risk.** The author is not responsible for data loss or any other problems.
 > - This is an unofficial project, not affiliated with Microsoft or the Wine project.
-> - Only the Japanese and the English XP SP3 (x86) have been tested. XP in other languages is set up the same way as English XP
+> - Only the Japanese, the Simplified Chinese and the English XP SP3 (x86) have been tested. XP in other languages is set up the same way as English XP
 >   and might work, but it has not been tested at all (`setup.sh` warns and goes on).
-> - **The Simplified Chinese XP support is new and has not been checked against a Chinese ISO yet.** The language detection,
->   the fonts (宋体/SimSun), the locale (`zh_CN.UTF-8`), the console's font (新宋体, 8×16 cells) and Chinese input (fcitx5 +
->   Pinyin) are in place, but some of their values are XP's documented defaults rather than measurements taken on a Chinese
->   reference machine (see [the installation guide](INSTALL.en.md#simplified-chinese-xp)). Traditional Chinese XP (0x0404) is
->   set up as English XP (its fonts and console font differ, so it does not work as it is).
 
 ## How it works
 
 ```text
 LightDM ─ XP Welcome greeter (greeter/)
    └─ XP Shell session (session/supervisor.py)
-        ├─ Wine 11.0 + 126 patches (wine/patches/)
+        ├─ Wine 11.0 + 151 patches (wine/patches/)
         │    └─ XP's explorer.exe, shell32.dll, … (extracted from the ISO; ReactOS's or Windows 7's in their sessions)
         ├─ bridge-wm: an X11 WM + Win32 proxy windows (bridge-wm/)
         │    (Wayland session: a patched labwc instead of the WM, wayland/)
-        └─ fcitx5 (Mozc for Japanese, Pinyin for Simplified Chinese), tray bridge (bridge-wm/tray.py)
+        └─ fcitx5 + Mozc, tray bridge (bridge-wm/tray.py)
 ```
 
 The design documents are in Japanese; [docs/README.md](../../docs/README.md) lists them.
-A Chinese summary of all of them is in [docs/README.zh.md](../../docs/README.zh.md).
 
 ## Similar projects
 
@@ -155,9 +180,16 @@ A Chinese summary of all of them is in [docs/README.zh.md](../../docs/README.zh.
 - Microsoft binaries are never disassembled. Behavior is studied through public APIs and our own probes on a real XP.
 - Microsoft files, extracted files and prefixes live only in `localres/` and `.local/`, which Git ignores.
 
+## Contributors
+
+- [AshesTom](https://github.com/AshesTom) ([fork](https://github.com/AshesTom/win4wine)): XP's Display Properties,
+  sounds, keyboard layouts, XP's own notification area icons, the Start menu's left column, Internet Explorer 6 and
+  Windows Media Player 9, the welcome screen while the shell starts, caption animation and small icons, Arch Linux
+  support, `xp.sh` and more.
+
 ## License
 
 [LGPL-2.1-or-later](../../LICENSE), the same as Wine. It covers only the code and patches in this repository,
 except `wayland/patches/labwc/` (GPL-2.0-only, as labwc) and `wayland/patches/wlroots/` (MIT, as wlroots).
-The Windows XP and Windows 7 files, and the XP screens in the screenshot, are copyrighted by Microsoft.
+The Windows XP and Windows 7 files, and the XP and Windows 7 screens in the screenshots, are copyrighted by Microsoft.
 The ReactOS files that the ReactOS shell uses are under ReactOS's licenses (GPL-2.0-or-later; most of its DLLs LGPL-2.1-or-later).

@@ -11,8 +11,8 @@ prefix's: Japanese or English).
 Windows 7's x64 explorer runs as C:\\w7\\w7-explorer.exe, a 64-bit process.
 Its shell DLLs are kept in C:\\w7\\native and placed in system32, each with
 its MUI file in the language's folder (system32\\ja-JP\\shell32.dll.mui), as
-Windows 7 keeps them; Wine reads MUI files (patch 0087). Windows 7's Common
-Controls 6 is C:\\w7\\comctl32.dll, beside the shell (patch 0110); Wine's own
+Windows 7 keeps them; Wine reads MUI files (patch 0102). Windows 7's Common
+Controls 6 is C:\\w7\\comctl32.dll, beside the shell (patch 0126); Wine's own
 assembly stays every other program's. The files are placed as they are on
 the media, under the names the prefix uses. Every program of the prefix gets
 the DLLs that a file dialog needs (DllOverrides native,builtin: Windows
@@ -42,7 +42,7 @@ import tempfile
 ROOT = Path(__file__).resolve().parents[1]
 MARKER = 'win7-shell.json'
 # Bump when the registry settings below change; stage then applies them again.
-VERSION = 16
+VERSION = 17
 LOCALES = {'ja': 'ja_JP.UTF-8', 'en': 'en_US.UTF-8'}
 # Wine's own Common Controls 6 (which an earlier version of this prefix replaced).
 SXS = 'amd64_microsoft.windows.common-controls_6595b64144ccf1df_6.0.2600.2982_none_deadbeef'
@@ -59,7 +59,7 @@ NAMES = (
 # session (the shell, and the file dialogs of Windows applications), but for
 # Wine's own programs (WINE_PROGRAMS) and those the user gives Wine's DLLs
 # back (win7.py builtin). Windows 7's DLLs get Windows 7's Common Controls 6
-# from C:\w7 (Wine 0110); the programs keep Wine's. These are what an
+# from C:\w7 (Wine 0126); the programs keep Wine's. These are what an
 # application's file dialog loads (explorerframe's browser, its views and
 # thumbnails).
 NATIVE = ('explorerframe', 'shell32', 'shlwapi', 'propsys', 'shdocvw', 'dui70', 'duser', 'profapi',
@@ -308,6 +308,7 @@ def create(assets, dest, home, wine):
             prefix.copy(assets / f'system32/{name}.dll', assets / f'system32/{ui}/{name}.dll.mui',
                         prefix.system / f'{name}.dll')
         wow64_files(prefix, assets, ui)
+        shell_only_files(prefix, assets)
         prefix.copy(assets / 'sxs/comctl32.dll', assets / f'sxs/{ui}/comctl32.dll.mui', c / 'w7/comctl32.dll')
         system_icons(dest, assets)
         notepad_strings(dest, assets)
@@ -324,6 +325,7 @@ def create(assets, dest, home, wine):
         prefix.run(str(ROOT / '.local/bridge/wallpaper-convert.exe'), windows_path(wallpaper),
                    windows_path(themes / 'TranscodedWallpaper.bmp'))
         start_menu(prefix, assets, user)
+        quick_launch(prefix, assets, user)
         (dest / 'dosdevices/h:').symlink_to(home)
         prefix.run('regedit', '/s', windows_path(assets / 'registry.reg'), timeout=600)
         prefix.wow64_registry(assets)
@@ -461,6 +463,44 @@ def start_menu(prefix, assets, user):
             prefix.run('attrib', '+s', path + '\\desktop.ini', check=False)
 
 
+def quick_launch(prefix, assets, user):
+    """The default user's Quick Launch items (Show Desktop, Window Switcher), once.
+
+    Windows 7 copies them into a new profile; its taskbar shows the folder as
+    a toolbar when the user adds it (Toolbars, New toolbar). Items the user
+    removed later are not put back."""
+    source = assets / 'quicklaunch'
+    marker = prefix.path / '.w7-quick-launch'
+    if marker.exists() or not source.is_dir():
+        return
+    folder = prefix.path / f'drive_c/users/{user}/AppData/Roaming/Microsoft/Internet Explorer/Quick Launch'
+    folder.mkdir(parents=True, exist_ok=True)
+    for item in sorted(source.iterdir()):
+        if not (folder / item.name).exists():
+            shutil.copyfile(item, folder / item.name)
+    if (folder / 'desktop.ini').is_file():
+        # Its localized names, as start_menu() marks the Start menu's folders.
+        path = 'C:\\' + str(folder.relative_to(prefix.path / 'drive_c')).replace('/', '\\')
+        prefix.run('attrib', '+s', path, check=False)
+        prefix.run('attrib', '+h', path + '\\desktop.ini', check=False)
+        prefix.run('attrib', '+s', path + '\\desktop.ini', check=False)
+    marker.write_text('1\n')
+
+
+def mark_folders(prefix, user):
+    """Mark the profile's and the Start menu's folders that have a desktop.ini as
+    system folders again: Windows 7 makes some of them read-only in the first
+    session (its known folders' attributes), which cleared the system attribute
+    before Wine kept the read-only one (Wine 0121), and their items lost their
+    localized names (Links' "Recent Places", the Start menu's "Startup")."""
+    profile_folders(prefix, user)
+    for root in ('ProgramData', f'users/{user}/AppData/Roaming'):
+        menu = prefix.path / 'drive_c' / root / 'Microsoft/Windows/Start Menu'
+        for ini in sorted(menu.rglob('desktop.ini')) if menu.is_dir() else ():
+            prefix.run('attrib', '+s', 'C:\\' + str(ini.parent.relative_to(prefix.path / 'drive_c')).replace('/', '\\'),
+                       check=False)
+
+
 def wow64_files(prefix, assets, ui):
     """The 32-bit shell DLLs (and Common Controls 6) in C:\\w7\\wow64, from extract/win7.py's SysWOW64 files."""
     wow64 = prefix.path / 'drive_c/w7/wow64'
@@ -472,6 +512,21 @@ def wow64_files(prefix, assets, ui):
     if (assets / 'sxs/wow64/comctl32.dll').is_file():
         prefix.copy(assets / 'sxs/wow64/comctl32.dll', assets / f'sxs/wow64/{ui}/comctl32.dll.mui',
                     wow64 / 'comctl32.dll')
+
+
+def shell_only_files(prefix, assets):
+    """The shell's own DLLs (SHELL_ONLY), 64-bit and 32-bit, where they are missing:
+    prefixes made by win4wine 0.9.0 to 0.12.0 lack them (the shell did not start).
+    Whether any was missing."""
+    ui = json.loads((assets / 'media.json').read_text())['ui_language']
+    missing = False
+    for folder, system in (('native', 'system32'), ('wow64', 'syswow64')):
+        for name in SHELL_ONLY:
+            target = prefix.path / f'drive_c/w7/{folder}/{name}.dll'
+            if not target.exists() and (assets / f'{system}/{name}.dll').is_file():
+                prefix.copy(assets / f'{system}/{name}.dll', assets / f'{system}/{ui}/{name}.dll.mui', target)
+                missing = True
+    return missing
 
 
 def effects(prefix):
@@ -569,6 +624,20 @@ def stage(dest, wine=None):
         system_icons(dest, Path(config['assets']))
         notepad_strings(dest, Path(config['assets']))
         copy_fonts(dest, Path(config['assets']))
+        if not (dest / '.w7-quick-launch').exists() and (Path(config['assets']) / 'quicklaunch').is_dir():
+            # Prefixes made before the default Quick Launch items
+            try:
+                quick_launch(prefix, Path(config['assets']), pwd.getpwuid(os.getuid()).pw_name)
+            finally:
+                prefix.stop()
+        if shell_only_files(prefix, Path(config['assets'])):
+            # Wine's shell, which the session fell back to, cleared the
+            # profile folders' attributes: their localized names were lost.
+            prefix.place_files()
+            try:
+                mark_folders(prefix, pwd.getpwuid(os.getuid()).pw_name)
+            finally:
+                prefix.stop()
     if wine_current and applied == [str(VERSION), current] and fonts_current(dest, prefix.lang):
         # Nothing changed, but a first wineboot or an update may have replaced files.
         prefix.place_files()
@@ -600,6 +669,11 @@ def stage(dest, wine=None):
         try:
             user_profile(prefix, pwd.getpwuid(os.getuid()).pw_name)
             profile_folders(prefix, pwd.getpwuid(os.getuid()).pw_name)
+        finally:
+            prefix.stop()
+    if applied and applied[0].isdigit() and int(applied[0]) < 17:
+        try:
+            mark_folders(prefix, pwd.getpwuid(os.getuid()).pw_name)
         finally:
             prefix.stop()
     current = timestamp.read_text().strip() if timestamp.is_file() else ''

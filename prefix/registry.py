@@ -3,7 +3,7 @@ import os
 import pwd
 import struct
 
-VERSION = 25
+VERSION = 26
 FONT_PROFILE = r'HKCU\Software\Win4Wine\ThemeProfiles\JapaneseXPLuna'
 # The classic fonts of a new prefix (prefix/theme-settings.c classic-initialize).
 CLASSIC_FONT_PROFILE = r'HKCU\Software\Win4Wine\ThemeProfiles\XPClassic'
@@ -122,8 +122,8 @@ def install(run, exists, language='ja'):
     English XP needs no font profile and keeps Wine's 75px icon spacing: Wine's
     reading of the English Luna theme and its defaults give the fonts and
     metrics that public calls report on the English reference machine.
-    Simplified Chinese XP needs none either: patch 0057 reads the Chinese Luna
-    theme's own localized values (its SimSun fonts) out of the user's
+    Simplified Chinese XP needs none either: the uxtheme patch reads the Chinese
+    Luna theme's own localized values (its SimSun fonts) out of the user's
     luna.msstyles, which is the mechanism that was measured for Japanese."""
     japanese = language == 'ja'
     # Seed defaults once. Migrations preserve disabled profiles, custom fonts,
@@ -186,7 +186,7 @@ def install(run, exists, language='ja'):
     # glyphs of MS Gothic at 16 pixels (pixel-equal; the half-width ones come
     # from its raster font vga932.fon). Wine's conhost would pick the first
     # fixed-pitch font, which has no Japanese glyphs; with these values and
-    # Wine patch 0049 it lays the 16-pixel font out in 8x18 cells as XP does.
+    # Wine patch 0059 it lays the 16-pixel font out in 8x18 cells as XP does.
     # The English family name keeps reg.exe's command line ASCII. Seed once.
     # English XP's console draws 8x12 cells with its raster Terminal font
     # (vgaoem.fon, extracted for English media), as on the English reference
@@ -196,7 +196,7 @@ def install(run, exists, language='ja'):
     # the same font (NSimSun, in simsun.ttc) at the same cell size, so reg.exe's
     # command line stays ASCII; the cells and the glyph pixels still have to be
     # compared with a Chinese reference machine (the Japanese 8x18 above was
-    # measured). Wine patch 0042 gives a character of code page 936 two cells
+    # measured). The console patch gives a character of code page 936 two cells
     # through the same code path as 932.
     if not exists(marker, 'ConsoleFont'):
         console = r'HKCU\Console'
@@ -255,11 +255,36 @@ def install(run, exists, language='ja'):
         ('{3F6953F0-5359-47FC-BD99-9F2CB95A62FD}', 'shell32.dll'),
         # Folder Options' General and View pages; XP's registry names shell32.
         ('{6D5313C0-8C62-11D1-B2CD-006097DF8C11}', 'shell32.dll'),
+        # The taskbar's folder toolbars (Quick Launch, Desktop, New Toolbar):
+        # ISFBand and QuickLinks, and the icons of Show Desktop's .scf file
+        # (CmdFileIcon). XP's shell32 registers them (its [RegShellObjects]);
+        # browseui's entries are for the Windows versions before XP.
+        ('{D82BE2B0-5764-11D0-A96E-00C04FD705A2}', 'shell32.dll'),
+        ('{0E5CBF21-D15F-11D0-8301-00AA005B4383}', 'shell32.dll'),
+        ('{57651662-CE3E-11D0-8D77-00C04FC99D61}', 'shell32.dll'),
     ))
     for clsid, dll in servers:
         key = 'HKCR\\CLSID\\' + clsid + '\\InprocServer32'
         run('reg', 'add', key, '/ve', '/t', 'REG_SZ', '/d', dll, '/f')
         run('reg', 'add', key, '/v', 'ThreadingModel', '/t', 'REG_SZ', '/d', 'Apartment', '/f')
+    run('reg', 'add', r'HKCR\CLSID\{0E5CBF21-D15F-11D0-8301-00AA005B4383}', '/v', 'MenuTextPUI',
+        '/t', 'REG_SZ', '/d', '@browselc.dll,-13138', '/f')
+    # Shell command files, as XP's shell32 registers them: Quick Launch's Show
+    # Desktop. XP Explorer's DDE server runs their command; without a running
+    # shell the file opens XP Explorer.
+    command = r'HKCR\SHCmdFile'
+    run('reg', 'add', r'HKCR\.scf', '/ve', '/t', 'REG_SZ', '/d', 'SHCmdFile', '/f')
+    run('reg', 'add', command, '/ve', '/t', 'REG_SZ', '/d', 'Windows Explorer Command', '/f')
+    run('reg', 'add', command, '/v', 'NeverShowExt', '/t', 'REG_SZ', '/d', '', '/f')
+    run('reg', 'add', command, '/v', 'InfoTip', '/t', 'REG_SZ', '/d', 'prop:DocComments', '/f')
+    for name in ('CLSID', r'shellex\IconHandler'):
+        run('reg', 'add', command + '\\' + name, '/ve', '/t', 'REG_SZ',
+            '/d', '{57651662-CE3E-11D0-8D77-00C04FC99D61}', '/f')
+    run('reg', 'add', command + r'\shell\open\command', '/ve', '/t', 'REG_SZ', '/d', r'C:\xp\xp-explorer.exe', '/f')
+    run('reg', 'add', command + r'\shell\open\ddeexec', '/ve', '/t', 'REG_SZ', '/d', '[ShellFile("%1","%1",%S)]', '/f')
+    run('reg', 'add', command + r'\shell\open\ddeexec', '/v', 'NoActivateHandler', '/t', 'REG_SZ', '/d', '', '/f')
+    run('reg', 'add', command + r'\shell\open\ddeexec\Application', '/ve', '/t', 'REG_SZ', '/d', 'Folders', '/f')
+    run('reg', 'add', command + r'\shell\open\ddeexec\Topic', '/ve', '/t', 'REG_SZ', '/d', 'AppProperties', '/f')
     # XP registers the New menu handler with flags=0. Without the value XP
     # shell32 puts the handler's New item at the start of the folder's
     # background menu instead of in the handler group, and its cleanup then

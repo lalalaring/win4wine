@@ -11,8 +11,10 @@
 ## Requirements
 
 - A **Debian 13 (trixie) amd64** machine (real or virtual). No desktop environment is needed.
-- A **Windows XP Professional SP3 (x86) ISO** (or an XP Windows directory), **Japanese, Simplified Chinese or English**;
-  which one is detected from the ISO.
+  On Arch Linux and its derivatives (CachyOS, ...), `scripts/setup.sh` installs the same packages with pacman
+  and keeps the display manager in use (untested beyond the package step). The checkout path must not contain spaces.
+- A **Windows XP Professional SP3 (x86) ISO** (or an XP Windows directory), **Japanese or English**; which one is
+  detected from the ISO.
 - Network access (packages and the Wine source) and **about 40 GB of free space** (Wine's source and build).
 - A user who can use sudo.
 
@@ -45,13 +47,14 @@ If it fails, just run it again: finished steps are skipped. Everything it builds
 
 ## 2. What the script does
 
-1. Installs packages (Wine's build dependencies, Xorg, python3-xlib, fcitx5 + Mozc + Pinyin, …), and LightDM if there is no display manager.
+1. Installs packages (Wine's build dependencies, Xorg, python3-xlib, fcitx5 + Mozc, …), and LightDM if there is no display manager.
 2. Fetches Wine 11.0, applies the patches and builds it (`.local/wine-install`; about 90 minutes on 4 cores; log in `.local/wine-build.log`).
    While it builds, only the step, the number and share of files compiled, an estimate of the time left and the last few lines of output are shown.
 3. Builds the bridge (the WM and the proxy windows).
-4. Extracts only the needed files from the ISO (`.local/assets`), and finds out the XP's language (Japanese, Simplified Chinese or English).
-5. Generates the locale of that language (`ja_JP.UTF-8`, `zh_CN.UTF-8` or `en_US.UTF-8`).
-6. Creates the XP prefix (`.local/prefix`), with that XP's fonts and settings (see "English XP" and "Simplified Chinese XP" below).
+4. Extracts only the needed files from the ISO (`.local/assets`), and finds out the XP's language (Japanese or English).
+5. Generates the locale of that language (`ja_JP.UTF-8` or `en_US.UTF-8`).
+6. Creates the XP prefix (`.local/prefix`), with that XP's fonts and settings (see "English XP" and
+   "Simplified Chinese XP" below).
 7. Writes `~/.config/win4wine/session.json` and registers the session "XP Shell (Wine, X11)".
 8. On a virtual machine whose virtual graphics card is slow to read back from (QEMU's standard VGA, Hyper-V, VirtualBox's
    VBoxVGA and VBoxSVGA), makes X draw in memory first (`/etc/X11/xorg.conf.d/20-win4wine-shadowfb.conf`, modesetting's
@@ -71,10 +74,10 @@ Give an English XP SP3 ISO to `--media` and the setup follows English XP; the op
 - The command prompt uses the raster font Terminal (8×12), as on English XP.
 - The Welcome screen has English XP's text and fonts (Arial, Tahoma, Franklin Gothic Medium).
 - The font files come from the ISO (Franklin Gothic, Arial bold and italic, Microsoft Sans Serif and Terminal of the English ISO).
-- Mixing Japanese, Simplified Chinese and English XP on one machine is not intended. There is one Welcome screen per machine:
-  the last one set up with `--greeter`.
-- XP in languages other than Japanese, Simplified Chinese and English is set up the same way as English XP (with the locale
-  `en_US.UTF-8`). It has not been tested at all, so `setup.sh` warns (and goes on).
+- Mixing Japanese, Simplified Chinese and English XP on one machine is not intended. There is one Welcome screen per machine: the last one set
+  up with `--greeter`.
+- XP in languages other than Japanese, Simplified Chinese and English is set up the same way as English XP (with the locale `en_US.UTF-8`).
+  It has not been tested at all, so `setup.sh` warns (and goes on).
 
 To switch from Japanese to English XP (or back), move the extracted files and the prefix away and run `setup.sh` again with
 the other ISO: `setup.sh` does not make them again while they exist. The Wine build is reused, and `setup.sh` updates the
@@ -96,12 +99,12 @@ Give a Simplified Chinese XP SP3 ISO to `--media` and the setup follows Simplifi
 - The locale is `zh_CN.UTF-8` (Wine takes the ANSI code page 936 from it). Chinese input is fcitx5 + Pinyin, and
   `session.json` gets `"input_method": "fcitx5"`.
 - The fonts are Simplified Chinese XP's 宋体 (SimSun) at 9 pt, with Luna and with the classic theme. Luna's fonts come from the
-  Chinese `luna.msstyles` of your own ISO (patch 0066); the classic ones are seeded by `prefix/registry.py`. Linux
+  Chinese `luna.msstyles` of your own ISO (patch 0077); the classic ones are seeded by `prefix/registry.py`. Linux
   applications get SimSun too.
 - The command prompt uses 新宋体 (NSimSun, in `simsun.ttc`) in 8×16 cells. XP itself uses the raster 新宋体, so `vga936.fon` is
   extracted from the ISO as well.
-- Lines with double-byte characters wrap the way Japanese XP's do (patch 0044, which now covers 936 too), and the console gives
-  such a character two cells (patch 0049, the same code path as 932).
+- Lines with double-byte characters wrap the way Japanese XP's do (patch 0054, which now covers 936 too), and the console gives
+  such a character two cells (patch 0059, the same code path as 932).
 - The session puts the input method into fcitx5's profile (`~/.config/fcitx5/profile`) before starting fcitx5: entries that are
   already there are kept, and a missing one is appended. Ctrl+Space switches. This needs `fcitx5-chinese-addons`, which
   `setup.sh` installs.
@@ -129,8 +132,6 @@ scripts/setup.sh --shell reactos --lang en
 - The prefix is `.local/prefix-reactos`, the settings `~/.config/win4wine/reactos-session.json` and the session
   "**ReactOS Shell (Wine, X11)**". The XP shell's settings and session are left alone, so both can be set up (Wine and the bridge are shared).
 - With `--greeter`, the login screen becomes ReactOS's logon screen.
-- `--lang` is `ja`, `zh` (Simplified Chinese) or `en`: the shell's language, its CJK fallback font link and the names of the
-  Start menu folders, and the session's locale and input method.
 - `--theme` is `classic` (the default, a Windows 2000-like classic look) or one of ReactOS's themes, `lautus`, `lunar` or
   `mizu`; run setup.sh again with `--theme` to change it later.
 - With `--wayland`, the Wayland session "ReactOS Shell (Wine, Wayland)" is installed too (even more experimental than X11).
@@ -150,7 +151,7 @@ scripts/setup.sh --shell win7 --media /path/to/Windows7SP1x64.iso
   "**Windows 7 Shell (Wine, X11)**". It can be set up beside the XP and ReactOS shells (they share Wine and the bridge).
 - Windows 7's Aero cursors are installed; with `--greeter` the login screen is Windows 7's logon screen too.
 - `--theme` and `--wayland` are not available for it yet; `--dpi` is.
-- Only Japanese Windows 7 Professional SP1 has been tested. Details: [docs/windows7.md](../../docs/windows7.md) (Japanese).
+- Tested with Japanese Windows 7 Professional SP1. English was tried with that media's strings (MUI) replaced by those of the English language pack (KB2483139); English installation media itself has not been tried yet. The language follows the media, and English Windows 7 is set up with the English locale (`en_US.UTF-8`). Details: [docs/windows7.md](../../docs/windows7.md) (Japanese).
 
 ## 3. Log in
 
@@ -164,9 +165,9 @@ Restart the display manager (or reboot).
 | To | Do |
 |---|---|
 | toggle Japanese input | Ctrl+Space or Zenkaku/Hankaku, or click the icon in the notification area |
-| toggle Chinese input (Simplified Chinese XP) | Ctrl+Space, or click the icon in the notification area |
 | start a Linux application | Start → All Programs (names end in "(Linux)") |
 | install a Windows application | `wine setup.exe` in a terminal; the session's `PATH` starts with this Wine |
+| start a Windows application from outside the session (ssh, another desktop) | `win4wine-wine setup.exe` (`~/.local/bin`): it runs with the session's prefix, Wine and settings, and looks as in the session. With more than one shell set up, choose with `--shell xp`, `reactos` or `win7`. Plain `wine` uses `~/.wine` and Wine's own look |
 | open the Start menu | the Windows key, Ctrl+Esc |
 | Run / Explorer | Win+R / Win+E |
 | log off or shut down | Start → Log Off / Turn Off Computer |
@@ -176,11 +177,11 @@ Restart the display manager (or reboot).
 | Key | Default | Meaning |
 |---|---|---|
 | `wine`, `prefix` | (written by setup.sh) | absolute paths of the Wine and prefix to use |
-| `locale` | `ja_JP.UTF-8` (`zh_CN.UTF-8` for Simplified Chinese XP, `en_US.UTF-8` for English XP) | the session's locale |
-| `input_method` | `fcitx5` (none for English XP) | the input method; leave it out to start none. Mozc for Japanese and Pinyin for Simplified Chinese XP are added to fcitx5's profile by the session when missing |
-| `linux_font` | `MS UI Gothic` (`SimSun` for Simplified Chinese XP, `Tahoma` for English XP) | font of Linux applications; `null` leaves it alone |
+| `locale` | `ja_JP.UTF-8` (`en_US.UTF-8` for English XP) | the session's locale |
+| `input_method` | `fcitx5` (none for English XP) | the input method; leave it out to start none |
+| `linux_font` | `MS UI Gothic` (`Tahoma` for English XP) | font of Linux applications; `null` leaves it alone |
 | `linux_menu` | `true` | list Linux applications in the Start menu |
-| `welcome_screen` | `true` | show XP's screens after login and while logging off |
+| `welcome_screen` | `true` | show XP's screens after login and while logging off (Windows 7's "Welcome", "Logging off" and so on for the Windows 7 shell) |
 | `cursor_theme` | `win4wine-xp` | cursor theme; `null` for none |
 | `shutdown_command`, `reboot_command` | `systemctl poweroff` / `reboot` | commands run by Turn Off Computer |
 | `outputs` | (none) | the Wayland session's settings per output, e.g. `{"HDMI-A-1": {"scale": 1.5}, "DP-1": {"scale": 1, "position": "2560,0"}}` (`mode` too; `wlr-randr` lists the names) |
@@ -191,9 +192,12 @@ Restart the display manager (or reboot).
 
 ## Changing the look and the text size
 
-Display Properties (right-click the desktop → Properties) open the applet this repository installs (theme, Start menu,
-DPI, font smoothing; see "Filling the small holes the shell has" below). `setup.sh` changes the same settings, while the
-session's Wine is not running: log off first.
+Display Properties (right-click the desktop → Properties) opens a real dialog in both shells: XP's own `desk.cpl` (patched) in
+the XP shell, and this repository's applet in the ReactOS shell (the theme, the Start menu, the DPI and font smoothing). The
+Windows tools sit in the shell's Start menu under Accessories (Task Manager, Notepad, Command Prompt, Registry Editor, Control
+Panel, Wine Configuration); their shortcuts go through `win-run.exe`, since Wine's builtin programs are not files in the
+prefix. Without a shell of their own, the theme (the look), the DPI (the size of text and screen elements) and the font smoothing
+(ClearType) are changed with `setup.sh`, while the session's Wine is not running: log off first.
 
 1. Start → Log Off, back to the login screen.
 2. Press Ctrl+Alt+F2 for a text console and log in as the same user (or log in over SSH from another machine).
@@ -224,11 +228,6 @@ crisp on every output; set the DPI to the scale of the output you mostly use (14
 ## Troubleshooting
 
 - Session logs: `~/.local/state/win4wine/` (the previous run's in `*.log.1`).
-- Distributions other than Debian 13 (openKylin, for example) work too, but only Debian 13 has been tested: package names and
-  dependencies differ, so `setup.sh` **warns about the packages the distribution does not carry and leaves them out** (openKylin
-  3.0 has no `fcitx5-frontend-gtk4`, and its `xterm` needs an `xbitmaps` it does not have; GTK3, Qt5 and Qt6 applications still
-  get input without them). When the single transaction fails, the packages are installed one by one and only the ones that
-  cannot be installed are left out.
 - If the XP shell keeps crashing, the session switches to Wine's own explorer and an xterm.
 - Before 2026-10-13, `setup.sh` could fail while setting a new prefix's look (`Setting the theme failed`).
   Update, then run `scripts/setup.sh --media ISO --theme luna` (or `classic`) again.
@@ -249,56 +248,3 @@ sudo rm -f /etc/X11/xorg.conf.d/20-win4wine-shadowfb.conf   # remove the virtual
 
 The builds, extracted files and prefix go away with `.local/` of this checkout.
 Packages the script installed (LightDM included) and the switch of display manager are not undone.
-
-## Filling the small holes the shell has
-
-Parts XP's shell has and Wine does not are covered by programs this repository builds.
-
-- **Desktop right click -> Properties**: the shell starts `rundll32 desk.cpl`, and Wine's `desk.cpl` is empty.
- `bridge-wm/desk-cpl.c` (the applet) and `bridge-wm/display-properties.c` (the window) are built, placed in the
- prefix by `prefix/reactos.py`, and `rundll32.exe` gets `desk.cpl=native`. It offers theme, Start menu, DPI and font
- smoothing, writing the same values as `prefix/display.py`.
-- **The Windows tools**: Wine's builtin programs are not files inside the prefix, so a shortcut cannot point at them.
- `bridge-wm/win-run.c` is the single target, and Task Manager, Notepad, Command Prompt, Registry Editor, Control
- Panel and Wine Configuration are put in the Start menu's Accessories folder.
-- **CJK text in boxes**: Wine's default interface font for Chinese is SimSun and for Japanese MS UI Gothic, and a
- ReactOS prefix has neither (it has ReactOS's own fonts), so Wine's own windows drew kanji as boxes.
- `prefix/reactos.py` points the missing families at the prefix's DroidSansFallback through `FontSubstitutes` and
- `HKCU\Software\Wine\Fonts\Replacements`.
-
-## Adding Proton's compatibility layer to this Wine
-
-Proton is a Wine build of its own, but what a game actually receives from it are the Direct3D translation layers
-(DXVK and VKD3D-Proton), which are ordinary Windows DLLs any Wine built with Vulkan support can load.
-
-```sh
-# get Proton (GE-Proton comes from GitHub Releases)
-tar xzf GE-Proton*-x86_64.tar.gz -C ~/.local/proton
-# put the layers into a prefix (default ~/.local/prefix-games)
-scripts/proton-layers.sh install ~/.local/prefix-games
-scripts/proton-layers.sh check   ~/.local/prefix-games    # the DXVK log and the overrides
-```
-
-Whether this Wine supports Vulkan shows up as a warning from `WINEDEBUG=+vulkan wine --version`, or as the presence
-or absence of `winevulkan.dll`. Without it, install `libvulkan-dev` and rebuild with `wine/build.sh` (this
-repository's build detects Vulkan by default).
-
-### Double-clicking a .exe
-
-- **Inside the Windows shell** (ReactOS's desktop or explorer): it just works. The shell starts the program through
- `HKCR\exefile\shell\open\command` (`"%1" %*`), which is the session's Wine — the one this repository builds with
- Vulkan — together with the Proton layers installed in its prefix. The log from the check:
-
-```text
-Loaded L"C:\users\openkylin\Desktop\probe-d3d11.exe" : native
-info:  DXVK: v3.1.1-75-g71ec7b5be6c517d0
-info:  D3D11InternalCreateDevice: Maximum supported feature level: D3D_FEATURE_LEVEL_11_1
-```
-
-- **On the Linux side** (openKylin's own desktop or file manager): nothing there knows what a .exe is, so
- `scripts/exe-handler.sh` installs a MIME handler (`win4wine-exe.desktop`), a runner (`win4wine-run-exe`) and the
- same `wine-games` wrapper, all using the same Wine and layers. Verify it with `gio open program.exe`, which is the
- path a double-click takes. What it started is written to `~/.local/state/win4wine/run.log`.
-
-`wine-games` picks the Wine that supports Vulkan (the one whose lib holds `winevulkan.dll`), initialises the prefix
-before putting the layers in, and therefore gets DXVK even on the very first double-click.
